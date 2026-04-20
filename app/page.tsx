@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { getCurrentUser } from "@/lib/auth/user";
-import { ARROW_COLORS as ARROW_TYPE_COLORS } from "@/lib/arrow-colors";
 
 export default async function Landing() {
   const user = await getCurrentUser();
@@ -173,140 +172,260 @@ function Step({
   );
 }
 
+// Scene geometry (single source of truth for HeroFigure).
+// viewBox 500 x 340. Slope rises from (40, 300) to (460, 150) — angle ≈ 19.65°.
+const HERO = (() => {
+  const vbW = 500;
+  const vbH = 340;
+  const slopeL = { x: 40, y: 300 };
+  const slopeR = { x: 460, y: 150 };
+  const dx = slopeR.x - slopeL.x;
+  const dy = slopeR.y - slopeL.y;
+  const len = Math.hypot(dx, dy);
+  const up = { x: dx / len, y: dy / len }; // up-slope unit (x pos, y neg)
+  const down = { x: -up.x, y: -up.y }; // down-slope unit
+  // Outward normal (into the air above the slope) = rotate up-slope 90° CW in screen coords.
+  const nrm = { x: up.y, y: -up.x }; // (-0.336, -0.942): up and left
+  // Block anchor: take a point along the slope, then lift by (block height / 2)
+  // along the outward normal so the block sits flush.
+  const blockHalfH = 22;
+  const slopePt = { x: 312, y: 300 - ((312 - slopeL.x) / dx) * -dy }; // exact y on the slope
+  const block = {
+    cx: slopePt.x + nrm.x * blockHalfH,
+    cy: slopePt.y + nrm.y * blockHalfH,
+  };
+  const angleDeg = (Math.atan2(-dy, dx) * 180) / Math.PI; // slope angle from horizontal
+  return { vbW, vbH, slopeL, slopeR, up, down, nrm, block, angleDeg };
+})();
+
+interface HeroArrow {
+  id: string;
+  color: string;
+  /** unit direction */
+  dir: { x: number; y: number };
+  /** length in viewBox units */
+  len: number;
+  label: string;
+  /** perpendicular offset for the label, in viewBox units (positive = left of the arrow direction) */
+  labelSide?: 1 | -1;
+  /** extra along-direction offset past the tip */
+  labelOver?: number;
+}
+
 function HeroFigure() {
+  const { vbW, vbH, slopeL, slopeR, up, down, nrm, block, angleDeg } = HERO;
+
+  const red = "#E0375C";
+  const green = "#22B07D";
+  const amber = "#F4A72B";
+
+  const arrows: HeroArrow[] = [
+    // Gravity: straight down
+    { id: "g", color: red, dir: { x: 0, y: 1 }, len: 80, label: "重力 mg" },
+    // Normal: outward perpendicular to slope (up-left)
+    { id: "N", color: red, dir: nrm, len: 82, label: "垂直抗力 N" },
+    // Friction: up-slope (opposes motion)
+    { id: "f", color: red, dir: up, len: 70, label: "摩擦力 f" },
+    // Velocity: down-slope
+    { id: "v", color: green, dir: down, len: 58, label: "速度 v", labelSide: -1 },
+    // Acceleration: down-slope, shorter (shows same direction but distinct)
+    { id: "a", color: amber, dir: down, len: 40, label: "加速度 a", labelSide: 1 },
+  ];
+
   return (
-    <div className="card p-5">
-      <div className="aspect-[4/3] rounded-xl relative overflow-hidden bg-[repeating-linear-gradient(45deg,#F2F4FA,#F2F4FA_10px,#E8ECF7_10px,#E8ECF7_20px)]">
-        <svg viewBox="0 0 100 75" className="absolute inset-0 w-full h-full">
-          {/* incline */}
-          <polygon points="10,65 90,65 90,25" fill="#D6DCEB" />
-          <line
-            x1="10"
-            y1="65"
-            x2="90"
-            y2="25"
-            stroke="#5865A0"
-            strokeWidth="0.8"
-          />
-          {/* block */}
-          <g transform="translate(55,40) rotate(-26.57)">
-            <rect
-              x="-7"
-              y="-5"
-              width="14"
+    <div className="card p-4 sm:p-5">
+      <div className="relative aspect-[500/340] rounded-xl overflow-hidden bg-white">
+        <svg
+          viewBox={`0 0 ${vbW} ${vbH}`}
+          className="absolute inset-0 w-full h-full"
+          preserveAspectRatio="xMidYMid meet"
+        >
+          <defs>
+            <linearGradient id="heroSlope" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#EEF1FB" />
+              <stop offset="100%" stopColor="#CED5E8" />
+            </linearGradient>
+            <linearGradient id="heroBlock" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#1C2340" />
+              <stop offset="100%" stopColor="#0B1020" />
+            </linearGradient>
+            <pattern
+              id="heroHatch"
+              patternUnits="userSpaceOnUse"
+              width="10"
               height="10"
+              patternTransform="rotate(45)"
+            >
+              <rect width="10" height="10" fill="#F7F8FB" />
+              <line x1="0" y1="0" x2="0" y2="10" stroke="#B9C0D4" strokeWidth="1.6" />
+            </pattern>
+            {[
+              { id: "heroMr", color: red },
+              { id: "heroMg", color: green },
+              { id: "heroMa", color: amber },
+            ].map((m) => (
+              <marker
+                key={m.id}
+                id={m.id}
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="8"
+                markerHeight="8"
+                orient="auto-start-reverse"
+              >
+                <path d="M0,1 L10,5 L0,9 z" fill={m.color} />
+              </marker>
+            ))}
+          </defs>
+
+          {/* ground (hatched) */}
+          <rect x="0" y="300" width={vbW} height={40} fill="url(#heroHatch)" />
+
+          {/* slope body */}
+          <polygon
+            points={`${slopeL.x},${slopeL.y} ${slopeR.x},${slopeL.y} ${slopeR.x},${slopeR.y}`}
+            fill="url(#heroSlope)"
+            stroke="#5865A0"
+            strokeWidth="1.5"
+          />
+
+          {/* angle θ arc at base of slope */}
+          <path
+            d={`M ${slopeL.x + 80} ${slopeL.y} A 80 80 0 0 0 ${
+              slopeL.x + 80 * Math.cos((angleDeg * Math.PI) / 180)
+            } ${slopeL.y - 80 * Math.sin((angleDeg * Math.PI) / 180)}`}
+            fill="none"
+            stroke="#5865A0"
+            strokeWidth="1.5"
+          />
+          <text
+            x={slopeL.x + 56}
+            y={slopeL.y - 10}
+            fontSize="18"
+            fill="#5865A0"
+            fontStyle="italic"
+            fontWeight={600}
+          >
+            θ
+          </text>
+
+          {/* block flush on the slope */}
+          <g
+            transform={`translate(${block.cx} ${block.cy}) rotate(${-angleDeg})`}
+          >
+            <rect
+              x={-32}
+              y={-22}
+              width={64}
+              height={44}
+              rx={5}
               fill="#0B1020"
-              rx="1.2"
+              opacity={0.15}
+              transform="translate(2 3)"
             />
+            <rect
+              x={-32}
+              y={-22}
+              width={64}
+              height={44}
+              rx={5}
+              fill="url(#heroBlock)"
+            />
+            <text
+              x={0}
+              y={6}
+              fill="white"
+              fontSize={18}
+              fontWeight={700}
+              textAnchor="middle"
+            >
+              m
+            </text>
           </g>
-          {/* gravity */}
-          <Arrow
-            color={ARROW_TYPE_COLORS.force}
-            x1={55}
-            y1={42}
-            x2={55}
-            y2={62}
-            label="重力"
-          />
-          {/* normal */}
-          <Arrow
-            color={ARROW_TYPE_COLORS.force}
-            x1={55}
-            y1={42}
-            x2={44}
-            y2={36}
-            label="垂直抗力"
-          />
-          {/* friction */}
-          <Arrow
-            color={ARROW_TYPE_COLORS.force}
-            x1={55}
-            y1={42}
-            x2={46}
-            y2={38}
-            dash="1.5 1.5"
-            label="摩擦力"
-          />
-          {/* velocity */}
-          <Arrow
-            color={ARROW_TYPE_COLORS.velocity}
-            x1={55}
-            y1={42}
-            x2={71}
-            y2={50}
-            label="速度"
-          />
-          {/* accel */}
-          <Arrow
-            color={ARROW_TYPE_COLORS.acceleration}
-            x1={55}
-            y1={42}
-            x2={67}
-            y2={48}
-            label="加速度"
-          />
+
+          {/* arrows */}
+          {arrows.map((a) => {
+            const tipX = block.cx + a.dir.x * a.len;
+            const tipY = block.cy + a.dir.y * a.len;
+            const marker =
+              a.color === red
+                ? "url(#heroMr)"
+                : a.color === green
+                  ? "url(#heroMg)"
+                  : "url(#heroMa)";
+            return (
+              <line
+                key={a.id}
+                x1={block.cx}
+                y1={block.cy}
+                x2={tipX}
+                y2={tipY}
+                stroke={a.color}
+                strokeWidth={2.8}
+                markerEnd={marker}
+                strokeLinecap="round"
+              />
+            );
+          })}
+
+          {/* origin dot at block center */}
+          <circle cx={block.cx} cy={block.cy} r={3.5} fill="#0B1020" />
         </svg>
+
+        {/* HTML labels — pinned to the tip in % so they stay crisp */}
+        {arrows.map((a) => {
+          const tipX = block.cx + a.dir.x * a.len;
+          const tipY = block.cy + a.dir.y * a.len;
+          // perpendicular unit to the arrow direction
+          const perp = { x: -a.dir.y, y: a.dir.x };
+          const side = a.labelSide ?? 1;
+          const over = a.labelOver ?? 14;
+          const perpOffset = 14;
+          const lx = tipX + a.dir.x * over + perp.x * perpOffset * side;
+          const ly = tipY + a.dir.y * over + perp.y * perpOffset * side;
+          return (
+            <HeroLabel
+              key={a.id}
+              x={lx / vbW}
+              y={ly / vbH}
+              color={a.color}
+              label={a.label}
+            />
+          );
+        })}
       </div>
-      <div className="mt-3 text-xs text-ink-muted">
-        サンプル：斜面上の運動。力 / 速度 / 加速度を色分けして重ねて表示します。
-      </div>
+      <p className="mt-3 text-xs text-ink-muted leading-relaxed">
+        サンプル：粗い斜面上の運動。<span style={{ color: "#E0375C" }}>力</span>・
+        <span style={{ color: "#22B07D" }}>速度</span>・
+        <span style={{ color: "#F4A72B" }}>加速度</span>を色分けして図に重ねます。
+      </p>
     </div>
   );
 }
 
-function Arrow({
+function HeroLabel({
+  x,
+  y,
   color,
-  x1,
-  y1,
-  x2,
-  y2,
-  dash,
   label,
 }: {
+  x: number;
+  y: number;
   color: string;
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  dash?: string;
   label: string;
 }) {
-  const id = `mk-${color.replace("#", "")}`;
   return (
-    <g>
-      <defs>
-        <marker
-          id={id}
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="4"
-          markerHeight="4"
-          orient="auto-start-reverse"
-        >
-          <path d="M0,0 L10,5 L0,10 Z" fill={color} />
-        </marker>
-      </defs>
-      <line
-        x1={x1}
-        y1={y1}
-        x2={x2}
-        y2={y2}
-        stroke={color}
-        strokeWidth="1.1"
-        strokeDasharray={dash}
-        markerEnd={`url(#${id})`}
-        strokeLinecap="round"
-      />
-      <text
-        x={(x1 + x2) / 2 + 1.5}
-        y={(y1 + y2) / 2 - 1}
-        fill={color}
-        fontSize="2.6"
-        fontWeight={600}
-      >
-        {label}
-      </text>
-    </g>
+    <span
+      className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-md border bg-white/95 px-2 py-0.5 text-[11px] sm:text-xs font-semibold shadow-sm"
+      style={{
+        left: `${x * 100}%`,
+        top: `${y * 100}%`,
+        color,
+        borderColor: color,
+      }}
+    >
+      {label}
+    </span>
   );
 }

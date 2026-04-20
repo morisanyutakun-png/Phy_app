@@ -305,7 +305,21 @@ export function HeroFigure() {
             <filter id="heroBlockShadow" x="-50%" y="-50%" width="200%" height="200%">
               <feDropShadow dx="0" dy="6" stdDeviation="6" floodColor="#000" floodOpacity="0.55" />
             </filter>
-            <filter id="heroGlow" x="-50%" y="-50%" width="200%" height="200%">
+            {/* NOTE: filterUnits=userSpaceOnUse is required. With the default
+                 objectBoundingBox, a perfectly vertical (or horizontal) arrow
+                 has a zero-width bbox and the filter region collapses to
+                 nothing — the mg arrow (straight down) would simply not
+                 render. Using userSpaceOnUse with an explicit region covering
+                 the full viewBox guarantees every arrow renders. */}
+            <filter
+              id="heroGlow"
+              x="0"
+              y="0"
+              width={VB_W}
+              height={VB_H}
+              filterUnits="userSpaceOnUse"
+              primitiveUnits="userSpaceOnUse"
+            >
               <feGaussianBlur stdDeviation="2.4" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />

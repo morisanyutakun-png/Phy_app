@@ -107,6 +107,9 @@ function sanitizeResult(raw: unknown): AnalysisResult | null {
                     reason: String(a.alternate?.reason ?? ""),
                   }
                 : undefined,
+            isComponent: Boolean(a?.isComponent),
+            componentOf:
+              typeof a?.componentOf === "string" ? a.componentOf : undefined,
           };
         })
         .slice(0, 10)

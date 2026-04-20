@@ -32,6 +32,21 @@ const RED = "#FF375F";
 const GREEN = "#30D158";
 const AMBER = "#FF9F0A";
 
+// ---- Gravity decomposition on this slope ---------------------------------
+// The incline angle θ is fixed (the slope geometry is static). We decompose
+// mg into:
+//   mg sinθ — component along the down-slope direction  ← "motion direction"
+//   mg cosθ — component perpendicular to the slope (into it)
+// These are mechanically essential on an incline problem.
+const ANGLE_RAD = (ANGLE_DEG * Math.PI) / 180;
+const SIN_THETA = Math.sin(ANGLE_RAD);
+const COS_THETA = Math.cos(ANGLE_RAD);
+const MG_LEN = 86;
+const MG_SIN_LEN = MG_LEN * SIN_THETA; // ~28.9
+const MG_COS_LEN = MG_LEN * COS_THETA; // ~81.0
+// -NRM points "into the slope" (opposite of the outward normal)
+const INTO_SLOPE = { x: -NRM.x, y: -NRM.y };
+
 type Phase = "fadeIn" | "slide" | "fadeOut" | "pause";
 
 interface Frame {
@@ -93,7 +108,14 @@ function computeFrame(elapsedMs: number): Frame {
 
 interface ArrowSpec {
   id: string;
-  kind: "force" | "kinematic";
+  /**
+   * force     — solid, emanates from the block center of mass
+   * component — dashed, a decomposition of a primary force; also emanates
+   *             from the block center but is rendered with a dashed stroke
+   *             to signal it's a "split", not an independent force.
+   * kinematic — has a tail dot, origin deliberately OFF the block.
+   */
+  kind: "force" | "component" | "kinematic";
   color: string;
   x1: number;
   y1: number;
@@ -140,11 +162,40 @@ export function HeroFigure() {
       x1: block.cx,
       y1: block.cy,
       dir: { x: 0, y: 1 },
-      len: 86,
+      len: MG_LEN,
       label: "重力 mg",
       labelSide: 1,
-      labelOver: 14,
+      labelOver: 16,
       labelPerp: 14,
+    },
+    // Decomposition along the motion direction. This is the physically key
+    // component on an incline: ma = mg sinθ − μ mg cosθ.
+    {
+      id: "mgSin",
+      kind: "component",
+      color: RED,
+      x1: block.cx,
+      y1: block.cy,
+      dir: DOWN,
+      len: MG_SIN_LEN,
+      label: "mg sinθ",
+      labelSide: 1,
+      labelOver: 10,
+      labelPerp: 14,
+    },
+    // Decomposition perpendicular to the slope (balances N).
+    {
+      id: "mgCos",
+      kind: "component",
+      color: RED,
+      x1: block.cx,
+      y1: block.cy,
+      dir: INTO_SLOPE,
+      len: MG_COS_LEN,
+      label: "mg cosθ",
+      labelSide: -1,
+      labelOver: 10,
+      labelPerp: 16,
     },
     {
       id: "N",
@@ -464,6 +515,28 @@ export function HeroFigure() {
             <circle cx={block.cx} cy={block.cy} r={5} fill={RED} opacity={0.18} />
             <circle cx={block.cx} cy={block.cy} r={2.6} fill="rgba(255,255,255,0.95)" />
 
+            {/* Gravity decomposition parallelogram — the two dashed sides
+                that close the rectangle, making the mg = mg sinθ + mg cosθ
+                relationship geometrically obvious. Drawn BEFORE the arrows
+                so the arrow strokes sit on top. */}
+            {(() => {
+              const mgTipX = block.cx;
+              const mgTipY = block.cy + MG_LEN;
+              const mgSinTipX = block.cx + DOWN.x * MG_SIN_LEN;
+              const mgSinTipY = block.cy + DOWN.y * MG_SIN_LEN;
+              const mgCosTipX = block.cx + INTO_SLOPE.x * MG_COS_LEN;
+              const mgCosTipY = block.cy + INTO_SLOPE.y * MG_COS_LEN;
+              const dash = "2 3";
+              return (
+                <g stroke={RED} strokeWidth={0.9} strokeDasharray={dash} opacity={0.45}>
+                  {/* closes side from mg sinθ tip to mg tip (parallel to mg cosθ) */}
+                  <line x1={mgSinTipX} y1={mgSinTipY} x2={mgTipX} y2={mgTipY} />
+                  {/* closes side from mg cosθ tip to mg tip (parallel to mg sinθ) */}
+                  <line x1={mgCosTipX} y1={mgCosTipY} x2={mgTipX} y2={mgTipY} />
+                </g>
+              );
+            })()}
+
             {/* Arrows */}
             {withTips.map((a) => {
               const marker =
@@ -472,6 +545,10 @@ export function HeroFigure() {
                   : a.color === GREEN
                     ? "url(#heroMg)"
                     : "url(#heroMa)";
+              const isComponent = a.kind === "component";
+              // Emphasize mg sinθ (the motion-direction component) slightly
+              // more than mg cosθ per the user's emphasis on motion direction.
+              const isMotionAxis = a.id === "mgSin";
               return (
                 <g key={a.id} filter="url(#heroGlow)">
                   <line
@@ -480,7 +557,9 @@ export function HeroFigure() {
                     x2={a.x2}
                     y2={a.y2}
                     stroke={a.color}
-                    strokeWidth={2.4}
+                    strokeWidth={isComponent ? (isMotionAxis ? 2.2 : 1.8) : 2.4}
+                    strokeDasharray={isComponent ? "5 3" : undefined}
+                    strokeOpacity={isComponent ? (isMotionAxis ? 0.95 : 0.8) : 1}
                     markerEnd={marker}
                     strokeLinecap="round"
                   />

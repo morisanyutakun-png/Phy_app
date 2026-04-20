@@ -42,6 +42,11 @@ export interface ArrowCandidate {
   commonMistakes?: MisconceptionTag[];
   /** Optional: alternative correct form, used for "wrong direction" coaching. */
   alternate?: { from: Vec2; to: Vec2; reason: string };
+  /** True when this arrow is a decomposition (e.g. mg sinθ / mg cosθ) rather
+   *  than an independent force. Rendered dashed to signal the distinction. */
+  isComponent?: boolean;
+  /** Optional id of the arrow this is a component of (e.g. "g" for mg). */
+  componentOf?: string;
 }
 
 export type MisconceptionTag =

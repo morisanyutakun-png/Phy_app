@@ -35,6 +35,7 @@ interface DrawableArrow {
   to: Vec2;
   judgment: ArrowJudgment;
   isSelected: boolean;
+  isComponent?: boolean;
 }
 
 export interface ArrowOverlayProps {
@@ -87,6 +88,7 @@ export function ArrowOverlay({
         to: useAlt ? arr.alternate!.to : arr.to,
         judgment,
         isSelected: selectedArrowId === arr.id,
+        isComponent: arr.isComponent,
       };
     });
     const u: DrawableArrow[] = userArrows.map((ua) => ({
@@ -242,15 +244,24 @@ export function ArrowOverlay({
                 x2={x2}
                 y2={y2}
                 stroke={color}
-                strokeWidth={strokeWidth}
-                strokeDasharray={
-                  style.dash
-                    ? style.dash
-                        .split(" ")
-                        .map((n) => Number(n) * (unit / 3.5))
-                        .join(" ")
-                    : undefined
-                }
+                strokeWidth={d.isComponent ? strokeWidth * 0.78 : strokeWidth}
+                strokeOpacity={d.isComponent ? 0.85 : 1}
+                strokeDasharray={(() => {
+                  // Judgment-driven dashes (wrong direction, unnecessary,
+                  // user added) take priority over the component-dash style.
+                  if (style.dash) {
+                    return style.dash
+                      .split(" ")
+                      .map((n) => Number(n) * (unit / 3.5))
+                      .join(" ");
+                  }
+                  if (d.isComponent) {
+                    // Dashed stroke: signals "this is a decomposition, not
+                    // an independent force."
+                    return `${5 * (unit / 3.5)} ${3 * (unit / 3.5)}`;
+                  }
+                  return undefined;
+                })()}
                 markerEnd={`url(#${markerId})`}
                 strokeLinecap="round"
               />

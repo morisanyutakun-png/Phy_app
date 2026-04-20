@@ -36,7 +36,9 @@ export const ANALYSIS_JSON_SCHEMA_HINT = `返すべきJSONスキーマ (TypeScri
         | "ACTION_REACTION_SAME_BODY" | "CENTRIPETAL_OUTWARD" | "PROJECTILE_HORIZONTAL_FORCE"
         | "SPRING_DIRECTION" | "GRAVITY_MAGNITUDE"
       )[],
-      "alternate"?: { "from": {"x":number,"y":number}, "to": {"x":number,"y":number}, "reason": string }
+      "alternate"?: { "from": {"x":number,"y":number}, "to": {"x":number,"y":number}, "reason": string },
+      "isComponent"?: boolean,         // true when this arrow is a decomposition (e.g. mg sinθ)
+      "componentOf"?: string           // id of the primary arrow being decomposed (e.g. "g")
     }
   ],
   "formulaHints": [
@@ -52,4 +54,6 @@ export const ANALYSIS_JSON_SCHEMA_HINT = `返すべきJSONスキーマ (TypeScri
 - 少なくとも 1 つの object を返す。
 - 力の矢印は最低でも重力を含める (投射・自由落下・斜面など該当する場合)。
 - 摩擦の有無が不明なときは摩擦を出さず confidence を低めに。
-- 矢印は 3〜8 本程度に抑え、情報過多にしない。`;
+- 矢印は 3〜8 本程度に抑え、情報過多にしない。
+- **斜面・円運動・投射** など、運動方向が水平・鉛直でない単元では、重要な力（特に重力 mg）を **運動方向に沿った成分** と **運動方向に垂直な成分** に分解した矢印も返す。分解された成分は isComponent: true を付け、componentOf に元の矢印 id（例 "g"）を書く。label は "mg sinθ" のような短い形でよい。
+- 運動方向の分解は、斜面なら斜面に沿う成分（mg sinθ）と斜面に垂直な成分（mg cosθ）、投射なら鉛直下向きのみ（水平成分 0）。正しく力学を反映すること。`;

@@ -176,6 +176,36 @@ export const SAMPLE_PROBLEMS: SampleProblem[] = [
           confidence: 0.98,
           commonMistakes: ["GRAVITY_MAGNITUDE", "NORMAL_NOT_VERTICAL_ON_INCLINE"],
         },
+        // Decomposition of mg along the slope (motion direction). This is the
+        // physically key component: ma = mg sinθ − μ mg cosθ. Drawn dashed to
+        // signal it's a split of mg, not an independent force.
+        {
+          id: "mgSin",
+          objectId: "A",
+          type: "force",
+          label: "mg sinθ",
+          from: { x: 0.54, y: 0.59 },
+          to: { x: 0.462, y: 0.639 },
+          reason:
+            "重力の斜面に沿った成分。これが物体を斜面下向きに加速させる正味の駆動力の源。",
+          confidence: 0.95,
+          isComponent: true,
+          componentOf: "g",
+        },
+        // Decomposition of mg perpendicular to the slope. Balances N.
+        {
+          id: "mgCos",
+          objectId: "A",
+          type: "force",
+          label: "mg cosθ",
+          from: { x: 0.54, y: 0.59 },
+          to: { x: 0.618, y: 0.811 },
+          reason:
+            "重力の斜面に垂直な成分。垂直抗力 N と釣り合う（鉛直方向のつり合いではなく、斜面垂直方向のつり合い）。",
+          confidence: 0.95,
+          isComponent: true,
+          componentOf: "g",
+        },
         {
           id: "N",
           objectId: "A",

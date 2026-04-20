@@ -1,0 +1,118 @@
+// Arrow Physics - DB schema
+// Provider is Postgres (Vercel Postgres / Neon / Supabase compatible).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  FREE
+  PRO
+}
+
+enum Unit {
+  HORIZONTAL
+  INCLINE
+  SPRING
+  CIRCULAR
+  PROJECTILE
+  UNKNOWN
+}
+
+enum ArrowJudgment {
+  CORRECT
+  UNNECESSARY
+  WRONG_DIRECTION
+  USER_ADDED
+}
+
+model User {
+  id                   String   @id @default(cuid())
+  email                String   @unique
+  passwordHash         String
+  plan                 Plan     @default(FREE)
+  stripeCustomerId     String?  @unique
+  stripeSubscriptionId String?  @unique
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  uploads     Upload[]
+  analyses    Analysis[]
+  usageDaily  UsageDaily[]
+  subscription Subscription?
+}
+
+model Upload {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blobUrl   String
+  filename  String
+  mimeType  String
+  createdAt DateTime @default(now())
+
+  analyses Analysis[]
+
+  @@index([userId, createdAt])
+}
+
+model Analysis {
+  id          String   @id @default(cuid())
+  uploadId    String
+  upload      Upload   @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unit        Unit     @default(UNKNOWN)
+  title       String?
+  // Full analysis payload (objects, arrows, reasoning, formula hints)
+  result      Json
+  // Aggregate list of misconception tags detected while reviewing
+  mistakeTags String[] @default([])
+  createdAt   DateTime @default(now())
+
+  feedback ArrowFeedback[]
+
+  @@index([userId, createdAt])
+}
+
+model ArrowFeedback {
+  id         String         @id @default(cuid())
+  analysisId String
+  analysis   Analysis       @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  arrowId    String
+  arrowLabel String
+  judgment   ArrowJudgment
+  // For USER_ADDED: the arrow data user drew
+  addedData  Json?
+  createdAt  DateTime       @default(now())
+
+  @@index([analysisId])
+}
+
+model UsageDaily {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // YYYY-MM-DD in JST
+  dateKey  String
+  count    Int      @default(0)
+
+  @@unique([userId, dateKey])
+  @@index([userId])
+}
+
+model Subscription {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeSubscriptionId String   @unique
+  status               String
+  currentPeriodEnd     DateTime
+  cancelAtPeriodEnd    Boolean  @default(false)
+  updatedAt            DateTime @updatedAt
+}

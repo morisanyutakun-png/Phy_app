@@ -39,7 +39,10 @@ export default async function Landing() {
             <h1 className="text-4xl md:text-5xl font-bold text-ink tracking-tight leading-tight">
               図で止まる物理を、
               <br />
-              <span className="text-brand">矢印</span>でわかる。
+              <span className="bg-gradient-to-r from-[#FF375F] via-[#FF9F0A] to-[#30D158] bg-clip-text text-transparent">
+                矢印
+              </span>
+              でわかる。
             </h1>
             <p className="mt-5 text-lg text-ink-muted leading-relaxed">
               問題図を1枚アップすると、力・速度・加速度の矢印候補を図の上に重ねて表示。
@@ -227,10 +230,11 @@ interface HeroArrow {
 function HeroFigure() {
   const { vbW, vbH, slopeL, slopeR, up, down, nrm, block, angleDeg } = HERO;
 
-  const red = "#E0375C";
-  const green = "#22B07D";
-  const amber = "#F4A72B";
-  const stroke = 2.6;
+  // Apple Music-inspired vivid accents that pop against a dark canvas.
+  const red = "#FF375F";
+  const green = "#30D158";
+  const amber = "#FF9F0A";
+  const stroke = 2.4;
 
   // Kinematic callout anchor: 95 units down-slope from the block.
   // This keeps v/a visually detached from the block — their tails are NOT
@@ -322,34 +326,103 @@ function HeroFigure() {
   }));
 
   return (
-    <div className="card p-4 sm:p-5">
-      <div className="relative aspect-[500/340] rounded-xl overflow-hidden bg-white ring-1 ring-ink/5">
+    <div className="relative">
+      {/* Ambient colored halos behind the card — Apple Music "now playing" vibe */}
+      <div
+        aria-hidden
+        className="absolute -inset-6 rounded-[40px] blur-3xl opacity-60 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(40% 60% at 15% 20%, rgba(255,55,95,0.35), transparent 60%), radial-gradient(40% 60% at 85% 80%, rgba(48,209,88,0.25), transparent 60%), radial-gradient(40% 60% at 80% 20%, rgba(255,159,10,0.22), transparent 60%)",
+        }}
+      />
+      <div
+        className="relative aspect-[500/340] rounded-[28px] overflow-hidden shadow-[0_30px_80px_-20px_rgba(11,16,40,0.55),0_6px_14px_-6px_rgba(11,16,40,0.4)]"
+        style={{
+          background:
+            "radial-gradient(120% 90% at 0% 0%, #1E1746 0%, #0E1230 45%, #07081B 100%)",
+        }}
+      >
+        {/* Subtle noise/grain for depth */}
+        <div
+          aria-hidden
+          className="absolute inset-0 opacity-[0.06] mix-blend-overlay pointer-events-none"
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>\")",
+          }}
+        />
+
+        {/* Soft radial focus behind the block */}
+        <div
+          aria-hidden
+          className="absolute rounded-full blur-3xl pointer-events-none"
+          style={{
+            width: "36%",
+            height: "48%",
+            left: `${(block.cx / vbW) * 100}%`,
+            top: `${(block.cy / vbH) * 100}%`,
+            transform: "translate(-50%, -50%)",
+            background:
+              "radial-gradient(circle, rgba(255,55,95,0.28) 0%, rgba(255,159,10,0.18) 35%, transparent 70%)",
+          }}
+        />
+
         <svg
           viewBox={`0 0 ${vbW} ${vbH}`}
-          className="absolute inset-0 w-full h-full"
+          className="relative z-10 w-full h-full"
           preserveAspectRatio="xMidYMid meet"
         >
           <defs>
             <linearGradient id="heroSlope" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#F1F4FC" />
-              <stop offset="100%" stopColor="#D4DAEB" />
+              <stop offset="0%" stopColor="rgba(255,255,255,0.09)" />
+              <stop offset="100%" stopColor="rgba(255,255,255,0.03)" />
+            </linearGradient>
+            <linearGradient id="heroSlopeEdge" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="rgba(255,255,255,0.18)" />
+              <stop offset="100%" stopColor="rgba(255,255,255,0.08)" />
             </linearGradient>
             <linearGradient id="heroBlock" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#242B4E" />
-              <stop offset="100%" stopColor="#0B1020" />
+              <stop offset="0%" stopColor="#2A2560" />
+              <stop offset="50%" stopColor="#14183B" />
+              <stop offset="100%" stopColor="#0A0B1F" />
+            </linearGradient>
+            <linearGradient id="heroBlockTop" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="rgba(255,255,255,0.35)" />
+              <stop offset="100%" stopColor="rgba(255,255,255,0)" />
             </linearGradient>
             <pattern
               id="heroHatch"
               patternUnits="userSpaceOnUse"
-              width="9"
-              height="9"
+              width="11"
+              height="11"
               patternTransform="rotate(45)"
             >
-              <rect width="9" height="9" fill="#F7F8FB" />
-              <line x1="0" y1="0" x2="0" y2="9" stroke="#B9C0D4" strokeWidth="1.2" />
+              <rect width="11" height="11" fill="transparent" />
+              <line
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="11"
+                stroke="rgba(255,255,255,0.14)"
+                strokeWidth="1"
+              />
             </pattern>
             <filter id="heroBlockShadow" x="-50%" y="-50%" width="200%" height="200%">
-              <feDropShadow dx="0" dy="4" stdDeviation="3" floodColor="#0B1020" floodOpacity="0.18" />
+              <feDropShadow
+                dx="0"
+                dy="6"
+                stdDeviation="6"
+                floodColor="#000"
+                floodOpacity="0.55"
+              />
+            </filter>
+            <filter id="heroGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="2.4" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
             </filter>
             {[
               { id: "heroMr", color: red },
@@ -362,36 +435,46 @@ function HeroFigure() {
                 viewBox="0 0 10 10"
                 refX="8.5"
                 refY="5"
-                markerWidth="7.5"
-                markerHeight="7.5"
+                markerWidth="7"
+                markerHeight="7"
                 orient="auto-start-reverse"
               >
-                <path d="M0,1.2 L10,5 L0,8.8 z" fill={m.color} />
+                <path d="M0,1.4 L10,5 L0,8.6 z" fill={m.color} />
               </marker>
             ))}
           </defs>
 
-          {/* ground baseline + hatching */}
+          {/* Ground hatching */}
           <rect x="0" y="300" width={vbW} height="40" fill="url(#heroHatch)" />
           <line
             x1="0"
             y1="300"
             x2={vbW}
             y2="300"
-            stroke="#5865A0"
+            stroke="rgba(255,255,255,0.22)"
             strokeWidth="1"
           />
 
-          {/* slope body */}
+          {/* Slope */}
           <polygon
             points={`${slopeL.x},${slopeL.y} ${slopeR.x},${slopeL.y} ${slopeR.x},${slopeR.y}`}
             fill="url(#heroSlope)"
-            stroke="#5865A0"
+            stroke="url(#heroSlopeEdge)"
             strokeWidth="1.4"
             strokeLinejoin="round"
           />
+          {/* highlight along the slope top edge */}
+          <line
+            x1={slopeL.x}
+            y1={slopeL.y}
+            x2={slopeR.x}
+            y2={slopeR.y}
+            stroke="rgba(255,255,255,0.45)"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+          />
 
-          {/* angle θ */}
+          {/* Angle θ arc */}
           {(() => {
             const rad = (angleDeg * Math.PI) / 180;
             const r = 74;
@@ -402,16 +485,16 @@ function HeroFigure() {
                 <path
                   d={`M ${slopeL.x + r} ${slopeL.y} A ${r} ${r} 0 0 0 ${arcEndX} ${arcEndY}`}
                   fill="none"
-                  stroke="#5865A0"
-                  strokeWidth="1.2"
+                  stroke="rgba(255,255,255,0.45)"
+                  strokeWidth="1"
                 />
                 <text
                   x={slopeL.x + r * 0.62 * Math.cos(rad / 2)}
                   y={slopeL.y - r * 0.62 * Math.sin(rad / 2) + 5}
                   fontSize="17"
-                  fill="#5865A0"
+                  fill="rgba(255,255,255,0.75)"
                   fontStyle="italic"
-                  fontWeight={600}
+                  fontWeight={500}
                   textAnchor="middle"
                   fontFamily="'Cambria Math','STIX Two Math','Times New Roman',serif"
                 >
@@ -421,19 +504,21 @@ function HeroFigure() {
             );
           })()}
 
-          {/* kinematic guide: thin ghost track showing where the block will travel */}
+          {/* Trajectory — neon green dashed */}
           <line
-            x1={block.cx + down.x * 44}
-            y1={block.cy + down.y * 44}
-            x2={block.cx + down.x * 170}
-            y2={block.cy + down.y * 170}
-            stroke="#22B07D"
-            strokeOpacity="0.25"
-            strokeWidth="1.2"
-            strokeDasharray="4 4"
+            x1={block.cx + down.x * 46}
+            y1={block.cy + down.y * 46}
+            x2={block.cx + down.x * 180}
+            y2={block.cy + down.y * 180}
+            stroke={green}
+            strokeOpacity="0.35"
+            strokeWidth="1.4"
+            strokeDasharray="2 6"
+            strokeLinecap="round"
+            filter="url(#heroGlow)"
           />
 
-          {/* block — sits flush on the slope, with drop shadow */}
+          {/* Block */}
           <g
             transform={`translate(${block.cx} ${block.cy}) rotate(${-angleDeg})`}
             filter="url(#heroBlockShadow)"
@@ -443,25 +528,27 @@ function HeroFigure() {
               y={-22}
               width={60}
               height={44}
-              rx={5}
+              rx={7}
               fill="url(#heroBlock)"
+              stroke="rgba(255,255,255,0.1)"
+              strokeWidth="0.6"
             />
-            {/* subtle top highlight */}
+            {/* glossy top sheen */}
             <rect
               x={-28}
               y={-20}
               width={56}
-              height={6}
-              rx={3}
-              fill="white"
-              opacity={0.08}
+              height={16}
+              rx={5}
+              fill="url(#heroBlockTop)"
+              opacity={0.6}
             />
             <text
               x={0}
               y={6}
-              fill="white"
-              fontSize={17}
-              fontWeight={700}
+              fill="rgba(255,255,255,0.92)"
+              fontSize={18}
+              fontWeight={600}
               textAnchor="middle"
               fontStyle="italic"
               fontFamily="'Cambria Math','STIX Two Math','Times New Roman',serif"
@@ -470,10 +557,11 @@ function HeroFigure() {
             </text>
           </g>
 
-          {/* origin dot for the force FBD */}
-          <circle cx={block.cx} cy={block.cy} r={2.8} fill="#0B1020" />
+          {/* Origin dot with halo for the FBD */}
+          <circle cx={block.cx} cy={block.cy} r="5" fill={red} opacity="0.2" />
+          <circle cx={block.cx} cy={block.cy} r="2.6" fill="rgba(255,255,255,0.95)" />
 
-          {/* arrows — drawn AFTER everything so they sit on top */}
+          {/* Arrows (neon, glowing) */}
           {arrowsWithGeom.map((a) => {
             const marker =
               a.color === red
@@ -483,7 +571,7 @@ function HeroFigure() {
                   : "url(#heroMa)";
             const L = Math.hypot(a.x2 - a.x1, a.y2 - a.y1);
             return (
-              <g key={a.id}>
+              <g key={a.id} filter="url(#heroGlow)">
                 <line
                   x1={a.x1}
                   y1={a.y1}
@@ -496,20 +584,18 @@ function HeroFigure() {
                   style={{
                     strokeDasharray: L,
                     strokeDashoffset: L,
-                    animation: `heroDraw 0.7s ${0.2 + a.order * 0.14}s cubic-bezier(0.22,0.61,0.36,1) forwards`,
+                    animation: `heroDraw 0.8s ${0.2 + a.order * 0.16}s cubic-bezier(0.22,1,0.36,1) forwards`,
                   }}
                 />
-                {/* tiny dot at the tail for kinematic vectors, to emphasize
-                    they DO NOT originate at the block */}
                 {a.kind === "kinematic" && (
                   <circle
                     cx={a.x1}
                     cy={a.y1}
-                    r={2.2}
+                    r={2.4}
                     fill={a.color}
                     style={{
                       opacity: 0,
-                      animation: `heroFadeIn 0.3s ${0.2 + a.order * 0.14 + 0.35}s ease-out forwards`,
+                      animation: `heroFadeIn 0.3s ${0.2 + a.order * 0.16 + 0.4}s ease-out forwards`,
                     }}
                   />
                 )}
@@ -518,7 +604,7 @@ function HeroFigure() {
           })}
         </svg>
 
-        {/* HTML labels — pinned to the tip in % so they stay crisp */}
+        {/* HTML labels — glass pills Apple-style */}
         {arrowsWithGeom.map((a) => {
           const perp = { x: -a.dir.y, y: a.dir.x };
           const side = a.labelSide ?? 1;
@@ -538,26 +624,30 @@ function HeroFigure() {
           );
         })}
 
-        {/* "Live analysis" badge */}
-        <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-white/90 border border-ink/10 shadow-sm px-2.5 py-1 text-[11px] font-semibold text-ink">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-60 animate-ping" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+        {/* Live analysis badge — glass */}
+        <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-white/[0.08] backdrop-blur-md border border-white/15 shadow-[0_4px_14px_rgba(0,0,0,0.25)] px-3 py-1.5 text-[11px] font-medium tracking-wide text-white/90">
+          <span className="relative flex h-1.5 w-1.5">
+            <span
+              className="absolute inline-flex h-full w-full rounded-full opacity-60 animate-ping"
+              style={{ background: green }}
+            />
+            <span
+              className="relative inline-flex rounded-full h-1.5 w-1.5"
+              style={{ background: green, boxShadow: `0 0 8px ${green}` }}
+            />
           </span>
           リアルタイム解析
         </div>
 
-        {/* legend bottom-right */}
-        <div className="absolute right-3 bottom-3 flex items-center gap-2 text-[10px] font-medium text-ink-muted bg-white/85 rounded-md px-2 py-1 border border-ink/10">
+        {/* Legend — glass */}
+        <div className="absolute right-3 bottom-3 flex items-center gap-3 rounded-full bg-white/[0.08] backdrop-blur-md border border-white/15 px-3 py-1.5 text-[10px] font-medium tracking-wide text-white/80">
           <LegendSwatch color={red} label="力" />
           <LegendSwatch color={green} label="速度" />
           <LegendSwatch color={amber} label="加速度" />
         </div>
       </div>
-      <p className="mt-3 text-xs text-ink-muted leading-relaxed">
-        サンプル：粗い斜面上の運動。<span style={{ color: "#E0375C" }}>力</span>・
-        <span style={{ color: "#22B07D" }}>速度</span>・
-        <span style={{ color: "#F4A72B" }}>加速度</span>を色分けして図に重ねます。
+      <p className="mt-4 text-xs text-ink-muted leading-relaxed text-center">
+        リアルタイム解析のサンプル — 粗い斜面上の運動（FBD + 運動ベクトル）
       </p>
     </div>
   );
@@ -578,16 +668,23 @@ function HeroLabel({
 }) {
   return (
     <span
-      className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-md border bg-white/95 px-2 py-0.5 text-[11px] sm:text-xs font-semibold shadow-sm"
+      className="absolute -translate-x-1/2 -translate-y-1/2 inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] sm:text-xs font-medium tracking-wide bg-white/[0.08] backdrop-blur-md border border-white/15 text-white/95 shadow-[0_6px_18px_rgba(0,0,0,0.35)]"
       style={{
         left: `${x * 100}%`,
         top: `${y * 100}%`,
-        color,
-        borderColor: color,
         opacity: 0,
-        animation: `heroLabelIn 0.35s ${0.2 + order * 0.14 + 0.55}s ease-out forwards`,
+        animation: `heroLabelIn 0.45s ${0.25 + order * 0.16 + 0.55}s cubic-bezier(0.22,1,0.36,1) forwards`,
       }}
     >
+      <span
+        className="inline-block rounded-full"
+        style={{
+          width: 6,
+          height: 6,
+          background: color,
+          boxShadow: `0 0 8px ${color}, 0 0 2px ${color}`,
+        }}
+      />
       {label}
     </span>
   );
@@ -595,10 +692,15 @@ function HeroLabel({
 
 function LegendSwatch({ color, label }: { color: string; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1">
+    <span className="inline-flex items-center gap-1.5">
       <span
         className="inline-block rounded-full"
-        style={{ width: 7, height: 7, background: color }}
+        style={{
+          width: 6,
+          height: 6,
+          background: color,
+          boxShadow: `0 0 6px ${color}`,
+        }}
       />
       {label}
     </span>

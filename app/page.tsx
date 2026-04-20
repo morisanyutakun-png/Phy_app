@@ -198,18 +198,30 @@ const HERO = (() => {
   return { vbW, vbH, slopeL, slopeR, up, down, nrm, block, angleDeg };
 })();
 
+type ArrowKind = "force" | "kinematic";
+
 interface HeroArrow {
   id: string;
   color: string;
-  /** unit direction */
+  kind: ArrowKind;
+  /** Starting point in viewBox coords. For forces this is the block center;
+   *  for kinematic vectors we deliberately place it OFF the block. */
+  x1: number;
+  y1: number;
+  /** Unit direction */
   dir: { x: number; y: number };
-  /** length in viewBox units */
+  /** Length in viewBox units */
   len: number;
+  /** Label shown as an HTML pill near the tip */
   label: string;
-  /** perpendicular offset for the label, in viewBox units (positive = left of the arrow direction) */
+  /** Side (perpendicular to direction) to push the label toward. +1 = right of direction, -1 = left */
   labelSide?: 1 | -1;
-  /** extra along-direction offset past the tip */
+  /** Extra along-direction offset past the tip */
   labelOver?: number;
+  /** Extra perpendicular offset for the label (viewBox units) */
+  labelPerp?: number;
+  /** Animation order (0-based) */
+  order: number;
 }
 
 function HeroFigure() {
@@ -218,23 +230,100 @@ function HeroFigure() {
   const red = "#E0375C";
   const green = "#22B07D";
   const amber = "#F4A72B";
+  const stroke = 2.6;
+
+  // Kinematic callout anchor: 95 units down-slope from the block.
+  // This keeps v/a visually detached from the block — their tails are NOT
+  // at the center of mass, matching real FBD conventions where velocity
+  // and acceleration are drawn as free kinematic vectors rather than forces.
+  const kinAnchor = {
+    x: block.cx + down.x * 100,
+    y: block.cy + down.y * 100,
+  };
+  // Perpendicular outward shift so v and a sit slightly above the slope line,
+  // not buried inside the slope fill.
+  const kinShift = { x: nrm.x * 6, y: nrm.y * 6 };
 
   const arrows: HeroArrow[] = [
-    // Gravity: straight down
-    { id: "g", color: red, dir: { x: 0, y: 1 }, len: 80, label: "重力 mg" },
-    // Normal: outward perpendicular to slope (up-left)
-    { id: "N", color: red, dir: nrm, len: 82, label: "垂直抗力 N" },
-    // Friction: up-slope (opposes motion)
-    { id: "f", color: red, dir: up, len: 70, label: "摩擦力 f" },
-    // Velocity: down-slope
-    { id: "v", color: green, dir: down, len: 58, label: "速度 v", labelSide: -1 },
-    // Acceleration: down-slope, shorter (shows same direction but distinct)
-    { id: "a", color: amber, dir: down, len: 40, label: "加速度 a", labelSide: 1 },
+    // --- Forces: tails at block center (FBD convention) ---
+    {
+      id: "g",
+      kind: "force",
+      color: red,
+      x1: block.cx,
+      y1: block.cy,
+      dir: { x: 0, y: 1 },
+      len: 86,
+      label: "重力 mg",
+      labelSide: 1,
+      order: 0,
+    },
+    {
+      id: "N",
+      kind: "force",
+      color: red,
+      x1: block.cx,
+      y1: block.cy,
+      dir: nrm,
+      len: 84,
+      label: "垂直抗力 N",
+      labelSide: -1,
+      order: 1,
+    },
+    {
+      id: "f",
+      kind: "force",
+      color: red,
+      x1: block.cx,
+      y1: block.cy,
+      dir: up,
+      len: 66,
+      label: "摩擦力 f",
+      labelSide: -1,
+      order: 2,
+    },
+    // --- Kinematic vectors: tails OFFSET from the block, not on it ---
+    {
+      id: "v",
+      kind: "kinematic",
+      color: green,
+      x1: kinAnchor.x + kinShift.x,
+      y1: kinAnchor.y + kinShift.y,
+      dir: down,
+      len: 54,
+      label: "速度 v",
+      labelSide: 1,
+      labelOver: 12,
+      labelPerp: 10,
+      order: 3,
+    },
+    {
+      id: "a",
+      kind: "kinematic",
+      color: amber,
+      x1: kinAnchor.x - kinShift.x + down.x * 8,
+      y1: kinAnchor.y - kinShift.y + down.y * 8,
+      dir: down,
+      len: 36,
+      label: "加速度 a",
+      labelSide: -1,
+      labelOver: 10,
+      labelPerp: 12,
+      order: 4,
+    },
   ];
+
+  // For the draw-in animation each arrow is rendered with
+  // stroke-dasharray / stroke-dashoffset = length.
+  const arrowsWithGeom = arrows.map((a) => ({
+    ...a,
+    x2: a.x1 + a.dir.x * a.len,
+    y2: a.y1 + a.dir.y * a.len,
+  }));
 
   return (
     <div className="card p-4 sm:p-5">
-      <div className="relative aspect-[500/340] rounded-xl overflow-hidden bg-white">
+      <div className="relative aspect-[500/340] rounded-xl overflow-hidden bg-white ring-1 ring-ink/5">
         <svg
           viewBox={`0 0 ${vbW} ${vbH}`}
           className="absolute inset-0 w-full h-full"
@@ -242,23 +331,26 @@ function HeroFigure() {
         >
           <defs>
             <linearGradient id="heroSlope" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#EEF1FB" />
-              <stop offset="100%" stopColor="#CED5E8" />
+              <stop offset="0%" stopColor="#F1F4FC" />
+              <stop offset="100%" stopColor="#D4DAEB" />
             </linearGradient>
             <linearGradient id="heroBlock" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#1C2340" />
+              <stop offset="0%" stopColor="#242B4E" />
               <stop offset="100%" stopColor="#0B1020" />
             </linearGradient>
             <pattern
               id="heroHatch"
               patternUnits="userSpaceOnUse"
-              width="10"
-              height="10"
+              width="9"
+              height="9"
               patternTransform="rotate(45)"
             >
-              <rect width="10" height="10" fill="#F7F8FB" />
-              <line x1="0" y1="0" x2="0" y2="10" stroke="#B9C0D4" strokeWidth="1.6" />
+              <rect width="9" height="9" fill="#F7F8FB" />
+              <line x1="0" y1="0" x2="0" y2="9" stroke="#B9C0D4" strokeWidth="1.2" />
             </pattern>
+            <filter id="heroBlockShadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="4" stdDeviation="3" floodColor="#0B1020" floodOpacity="0.18" />
+            </filter>
             {[
               { id: "heroMr", color: red },
               { id: "heroMg", color: green },
@@ -268,122 +360,172 @@ function HeroFigure() {
                 key={m.id}
                 id={m.id}
                 viewBox="0 0 10 10"
-                refX="9"
+                refX="8.5"
                 refY="5"
-                markerWidth="8"
-                markerHeight="8"
+                markerWidth="7.5"
+                markerHeight="7.5"
                 orient="auto-start-reverse"
               >
-                <path d="M0,1 L10,5 L0,9 z" fill={m.color} />
+                <path d="M0,1.2 L10,5 L0,8.8 z" fill={m.color} />
               </marker>
             ))}
           </defs>
 
-          {/* ground (hatched) */}
-          <rect x="0" y="300" width={vbW} height={40} fill="url(#heroHatch)" />
+          {/* ground baseline + hatching */}
+          <rect x="0" y="300" width={vbW} height="40" fill="url(#heroHatch)" />
+          <line
+            x1="0"
+            y1="300"
+            x2={vbW}
+            y2="300"
+            stroke="#5865A0"
+            strokeWidth="1"
+          />
 
           {/* slope body */}
           <polygon
             points={`${slopeL.x},${slopeL.y} ${slopeR.x},${slopeL.y} ${slopeR.x},${slopeR.y}`}
             fill="url(#heroSlope)"
             stroke="#5865A0"
-            strokeWidth="1.5"
+            strokeWidth="1.4"
+            strokeLinejoin="round"
           />
 
-          {/* angle θ arc at base of slope */}
-          <path
-            d={`M ${slopeL.x + 80} ${slopeL.y} A 80 80 0 0 0 ${
-              slopeL.x + 80 * Math.cos((angleDeg * Math.PI) / 180)
-            } ${slopeL.y - 80 * Math.sin((angleDeg * Math.PI) / 180)}`}
-            fill="none"
-            stroke="#5865A0"
-            strokeWidth="1.5"
-          />
-          <text
-            x={slopeL.x + 56}
-            y={slopeL.y - 10}
-            fontSize="18"
-            fill="#5865A0"
-            fontStyle="italic"
-            fontWeight={600}
-          >
-            θ
-          </text>
+          {/* angle θ */}
+          {(() => {
+            const rad = (angleDeg * Math.PI) / 180;
+            const r = 74;
+            const arcEndX = slopeL.x + r * Math.cos(rad);
+            const arcEndY = slopeL.y - r * Math.sin(rad);
+            return (
+              <>
+                <path
+                  d={`M ${slopeL.x + r} ${slopeL.y} A ${r} ${r} 0 0 0 ${arcEndX} ${arcEndY}`}
+                  fill="none"
+                  stroke="#5865A0"
+                  strokeWidth="1.2"
+                />
+                <text
+                  x={slopeL.x + r * 0.62 * Math.cos(rad / 2)}
+                  y={slopeL.y - r * 0.62 * Math.sin(rad / 2) + 5}
+                  fontSize="17"
+                  fill="#5865A0"
+                  fontStyle="italic"
+                  fontWeight={600}
+                  textAnchor="middle"
+                  fontFamily="'Cambria Math','STIX Two Math','Times New Roman',serif"
+                >
+                  θ
+                </text>
+              </>
+            );
+          })()}
 
-          {/* block flush on the slope */}
+          {/* kinematic guide: thin ghost track showing where the block will travel */}
+          <line
+            x1={block.cx + down.x * 44}
+            y1={block.cy + down.y * 44}
+            x2={block.cx + down.x * 170}
+            y2={block.cy + down.y * 170}
+            stroke="#22B07D"
+            strokeOpacity="0.25"
+            strokeWidth="1.2"
+            strokeDasharray="4 4"
+          />
+
+          {/* block — sits flush on the slope, with drop shadow */}
           <g
             transform={`translate(${block.cx} ${block.cy}) rotate(${-angleDeg})`}
+            filter="url(#heroBlockShadow)"
           >
             <rect
-              x={-32}
+              x={-30}
               y={-22}
-              width={64}
-              height={44}
-              rx={5}
-              fill="#0B1020"
-              opacity={0.15}
-              transform="translate(2 3)"
-            />
-            <rect
-              x={-32}
-              y={-22}
-              width={64}
+              width={60}
               height={44}
               rx={5}
               fill="url(#heroBlock)"
+            />
+            {/* subtle top highlight */}
+            <rect
+              x={-28}
+              y={-20}
+              width={56}
+              height={6}
+              rx={3}
+              fill="white"
+              opacity={0.08}
             />
             <text
               x={0}
               y={6}
               fill="white"
-              fontSize={18}
+              fontSize={17}
               fontWeight={700}
               textAnchor="middle"
+              fontStyle="italic"
+              fontFamily="'Cambria Math','STIX Two Math','Times New Roman',serif"
             >
               m
             </text>
           </g>
 
-          {/* arrows */}
-          {arrows.map((a) => {
-            const tipX = block.cx + a.dir.x * a.len;
-            const tipY = block.cy + a.dir.y * a.len;
+          {/* origin dot for the force FBD */}
+          <circle cx={block.cx} cy={block.cy} r={2.8} fill="#0B1020" />
+
+          {/* arrows — drawn AFTER everything so they sit on top */}
+          {arrowsWithGeom.map((a) => {
             const marker =
               a.color === red
                 ? "url(#heroMr)"
                 : a.color === green
                   ? "url(#heroMg)"
                   : "url(#heroMa)";
+            const L = Math.hypot(a.x2 - a.x1, a.y2 - a.y1);
             return (
-              <line
-                key={a.id}
-                x1={block.cx}
-                y1={block.cy}
-                x2={tipX}
-                y2={tipY}
-                stroke={a.color}
-                strokeWidth={2.8}
-                markerEnd={marker}
-                strokeLinecap="round"
-              />
+              <g key={a.id}>
+                <line
+                  x1={a.x1}
+                  y1={a.y1}
+                  x2={a.x2}
+                  y2={a.y2}
+                  stroke={a.color}
+                  strokeWidth={stroke}
+                  markerEnd={marker}
+                  strokeLinecap="round"
+                  style={{
+                    strokeDasharray: L,
+                    strokeDashoffset: L,
+                    animation: `heroDraw 0.7s ${0.2 + a.order * 0.14}s cubic-bezier(0.22,0.61,0.36,1) forwards`,
+                  }}
+                />
+                {/* tiny dot at the tail for kinematic vectors, to emphasize
+                    they DO NOT originate at the block */}
+                {a.kind === "kinematic" && (
+                  <circle
+                    cx={a.x1}
+                    cy={a.y1}
+                    r={2.2}
+                    fill={a.color}
+                    style={{
+                      opacity: 0,
+                      animation: `heroFadeIn 0.3s ${0.2 + a.order * 0.14 + 0.35}s ease-out forwards`,
+                    }}
+                  />
+                )}
+              </g>
             );
           })}
-
-          {/* origin dot at block center */}
-          <circle cx={block.cx} cy={block.cy} r={3.5} fill="#0B1020" />
         </svg>
 
         {/* HTML labels — pinned to the tip in % so they stay crisp */}
-        {arrows.map((a) => {
-          const tipX = block.cx + a.dir.x * a.len;
-          const tipY = block.cy + a.dir.y * a.len;
-          // perpendicular unit to the arrow direction
+        {arrowsWithGeom.map((a) => {
           const perp = { x: -a.dir.y, y: a.dir.x };
           const side = a.labelSide ?? 1;
           const over = a.labelOver ?? 14;
-          const perpOffset = 14;
-          const lx = tipX + a.dir.x * over + perp.x * perpOffset * side;
-          const ly = tipY + a.dir.y * over + perp.y * perpOffset * side;
+          const perpAmt = a.labelPerp ?? 14;
+          const lx = a.x2 + a.dir.x * over + perp.x * perpAmt * side;
+          const ly = a.y2 + a.dir.y * over + perp.y * perpAmt * side;
           return (
             <HeroLabel
               key={a.id}
@@ -391,9 +533,26 @@ function HeroFigure() {
               y={ly / vbH}
               color={a.color}
               label={a.label}
+              order={a.order}
             />
           );
         })}
+
+        {/* "Live analysis" badge */}
+        <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-white/90 border border-ink/10 shadow-sm px-2.5 py-1 text-[11px] font-semibold text-ink">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-60 animate-ping" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+          </span>
+          リアルタイム解析
+        </div>
+
+        {/* legend bottom-right */}
+        <div className="absolute right-3 bottom-3 flex items-center gap-2 text-[10px] font-medium text-ink-muted bg-white/85 rounded-md px-2 py-1 border border-ink/10">
+          <LegendSwatch color={red} label="力" />
+          <LegendSwatch color={green} label="速度" />
+          <LegendSwatch color={amber} label="加速度" />
+        </div>
       </div>
       <p className="mt-3 text-xs text-ink-muted leading-relaxed">
         サンプル：粗い斜面上の運動。<span style={{ color: "#E0375C" }}>力</span>・
@@ -409,11 +568,13 @@ function HeroLabel({
   y,
   color,
   label,
+  order,
 }: {
   x: number;
   y: number;
   color: string;
   label: string;
+  order: number;
 }) {
   return (
     <span
@@ -423,8 +584,22 @@ function HeroLabel({
         top: `${y * 100}%`,
         color,
         borderColor: color,
+        opacity: 0,
+        animation: `heroLabelIn 0.35s ${0.2 + order * 0.14 + 0.55}s ease-out forwards`,
       }}
     >
+      {label}
+    </span>
+  );
+}
+
+function LegendSwatch({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      <span
+        className="inline-block rounded-full"
+        style={{ width: 7, height: 7, background: color }}
+      />
       {label}
     </span>
   );

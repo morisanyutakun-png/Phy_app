@@ -42,6 +42,82 @@ body {
   }
 }
 
+/* ---- LIVE-mode loops ------------------------------------------------- */
+
+/* Trajectory dashes "march" down-slope. The stroke-dasharray is set
+   inline; here we only drive the offset. */
+@keyframes heroDashMarch {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+/* Scan sweep: thin vertical gradient band that slides across the
+   figure, evoking a live AI pass. */
+@keyframes heroScanSweep {
+  0% {
+    transform: translateX(-30%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.85;
+  }
+  65% {
+    opacity: 0.85;
+  }
+  90% {
+    opacity: 0;
+    transform: translateX(130%);
+  }
+  100% {
+    transform: translateX(130%);
+    opacity: 0;
+  }
+}
+
+/* Ambient outer halo slow breath */
+@keyframes heroHaloBreath {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.04);
+  }
+}
+
+/* Block subtle breathing + hover bob */
+@keyframes heroBlockBreath {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(0, -1.5px);
+  }
+}
+
+/* Pulse halo around the FBD origin */
+@keyframes heroOriginPulse {
+  0% {
+    opacity: 0.35;
+    r: 5;
+  }
+  70% {
+    opacity: 0;
+    r: 14;
+  }
+  100% {
+    opacity: 0;
+    r: 14;
+  }
+}
+
 @layer components {
   .btn {
     @apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed;

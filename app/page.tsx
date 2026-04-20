@@ -327,13 +327,14 @@ function HeroFigure() {
 
   return (
     <div className="relative">
-      {/* Ambient colored halos behind the card — Apple Music "now playing" vibe */}
+      {/* Ambient colored halos behind the card — slow breath */}
       <div
         aria-hidden
-        className="absolute -inset-6 rounded-[40px] blur-3xl opacity-60 pointer-events-none"
+        className="absolute -inset-6 rounded-[40px] blur-3xl pointer-events-none"
         style={{
           background:
-            "radial-gradient(40% 60% at 15% 20%, rgba(255,55,95,0.35), transparent 60%), radial-gradient(40% 60% at 85% 80%, rgba(48,209,88,0.25), transparent 60%), radial-gradient(40% 60% at 80% 20%, rgba(255,159,10,0.22), transparent 60%)",
+            "radial-gradient(40% 60% at 15% 20%, rgba(255,55,95,0.38), transparent 60%), radial-gradient(40% 60% at 85% 80%, rgba(48,209,88,0.26), transparent 60%), radial-gradient(40% 60% at 80% 20%, rgba(255,159,10,0.24), transparent 60%)",
+          animation: "heroHaloBreath 6s ease-in-out infinite",
         }}
       />
       <div
@@ -504,24 +505,31 @@ function HeroFigure() {
             );
           })()}
 
-          {/* Trajectory — neon green dashed */}
+          {/* Trajectory — neon green dashed, marching down-slope forever */}
           <line
             x1={block.cx + down.x * 46}
             y1={block.cy + down.y * 46}
             x2={block.cx + down.x * 180}
             y2={block.cy + down.y * 180}
             stroke={green}
-            strokeOpacity="0.35"
-            strokeWidth="1.4"
-            strokeDasharray="2 6"
+            strokeOpacity="0.45"
+            strokeWidth="1.6"
+            strokeDasharray="3 5"
             strokeLinecap="round"
             filter="url(#heroGlow)"
+            style={{
+              animation: "heroDashMarch 1.2s linear infinite",
+            }}
           />
 
-          {/* Block */}
+          {/* Block — very subtle vertical bob */}
           <g
             transform={`translate(${block.cx} ${block.cy}) rotate(${-angleDeg})`}
             filter="url(#heroBlockShadow)"
+            style={{
+              transformOrigin: `${block.cx}px ${block.cy}px`,
+              animation: "heroBlockBreath 4s ease-in-out infinite",
+            }}
           >
             <rect
               x={-30}
@@ -557,8 +565,18 @@ function HeroFigure() {
             </text>
           </g>
 
-          {/* Origin dot with halo for the FBD */}
-          <circle cx={block.cx} cy={block.cy} r="5" fill={red} opacity="0.2" />
+          {/* Origin halo — pulses outward every 2s */}
+          <circle
+            cx={block.cx}
+            cy={block.cy}
+            r="5"
+            fill={red}
+            style={{
+              opacity: 0.35,
+              animation: "heroOriginPulse 2s cubic-bezier(0.22,1,0.36,1) infinite",
+            }}
+          />
+          <circle cx={block.cx} cy={block.cy} r="5" fill={red} opacity="0.18" />
           <circle cx={block.cx} cy={block.cy} r="2.6" fill="rgba(255,255,255,0.95)" />
 
           {/* Arrows (neon, glowing) */}
@@ -603,6 +621,33 @@ function HeroFigure() {
             );
           })}
         </svg>
+
+        {/* AI scan sweep — thin vertical band that crosses the figure every 5s */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 z-20"
+          style={{
+            width: "14%",
+            background:
+              "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 45%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0.35) 55%, transparent 100%)",
+            mixBlendMode: "overlay",
+            filter: "blur(1px)",
+            animation: "heroScanSweep 5s cubic-bezier(0.65,0,0.35,1) infinite",
+            animationDelay: "1.5s",
+          }}
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 z-20"
+          style={{
+            width: "2px",
+            background:
+              "linear-gradient(180deg, transparent, rgba(48,209,88,0.9), transparent)",
+            boxShadow: "0 0 12px rgba(48,209,88,0.6)",
+            animation: "heroScanSweep 5s cubic-bezier(0.65,0,0.35,1) infinite",
+            animationDelay: "1.5s",
+          }}
+        />
 
         {/* HTML labels — glass pills Apple-style */}
         {arrowsWithGeom.map((a) => {

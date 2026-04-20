@@ -1,7 +1,15 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { AnalysisResult } from "@/types/analysis";
+import { AnalysisResult, MisconceptionTag } from "@/types/analysis";
+import { MISCONCEPTIONS } from "@/lib/misconceptions";
 import { ANALYSIS_JSON_SCHEMA_HINT, ANALYSIS_SYSTEM_PROMPT } from "./prompt";
 import { demoAnalysis } from "./demo";
+
+const VALID_TAGS = new Set(Object.keys(MISCONCEPTIONS)) as Set<string>;
+
+function toMisconceptionTag(v: unknown): MisconceptionTag | null {
+  if (typeof v !== "string") return null;
+  return VALID_TAGS.has(v) ? (v as MisconceptionTag) : null;
+}
 
 function parseJsonSafely(text: string): unknown {
   // Strip ``` fences if the model leaked any
@@ -81,7 +89,9 @@ function sanitizeResult(raw: unknown): AnalysisResult | null {
             reason: String(a?.reason ?? ""),
             confidence: clamp01(Number(a?.confidence ?? 0.5)),
             commonMistakes: Array.isArray(a?.commonMistakes)
-              ? a.commonMistakes.filter((m: unknown) => typeof m === "string")
+              ? (a.commonMistakes
+                  .map(toMisconceptionTag)
+                  .filter((m: MisconceptionTag | null) => m !== null) as MisconceptionTag[])
               : undefined,
             alternate:
               a?.alternate && typeof a.alternate === "object"
@@ -114,12 +124,17 @@ function sanitizeResult(raw: unknown): AnalysisResult | null {
     : [];
 
   const coachingNotes = Array.isArray(r.coachingNotes)
-    ? r.coachingNotes
-        .map((c: any) => ({
-          tag: String(c?.tag ?? ""),
-          note: String(c?.note ?? ""),
-        }))
-        .slice(0, 8)
+    ? (r.coachingNotes
+        .map((c: any) => {
+          const tag = toMisconceptionTag(c?.tag);
+          if (!tag) return null;
+          return { tag, note: String(c?.note ?? "") };
+        })
+        .filter(
+          (c: { tag: MisconceptionTag; note: string } | null): c is { tag: MisconceptionTag; note: string } =>
+            c !== null
+        )
+        .slice(0, 8) as Array<{ tag: MisconceptionTag; note: string }>)
     : [];
 
   return {

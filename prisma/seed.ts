@@ -1,20 +1,19 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
 import { SAMPLE_PROBLEMS } from "../lib/samples";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  // A placeholder PRO user so sample analyses have something to belong to.
+  // Actual users log in via Google OAuth — this row is not reachable from the
+  // login flow, it just gives the seeded history a home.
   const email = "demo@arrowphysics.app";
-  const passwordHash = await bcrypt.hash("demo1234", 10);
-
   const user = await prisma.user.upsert({
     where: { email },
     update: {},
-    create: { email, passwordHash, plan: "PRO" },
+    create: { email, plan: "PRO" },
   });
-
-  console.log("Seeded demo user:", email, "/ password: demo1234");
+  console.log("Seeded placeholder demo user:", email);
 
   for (const s of SAMPLE_PROBLEMS.slice(0, 3)) {
     const upload = await prisma.upload.create({

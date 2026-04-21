@@ -22,7 +22,7 @@
 - Vercel Blob（画像保存）
 - Anthropic Claude API（`claude-sonnet-4-6`）
 - Stripe
-- 認証: 自前 JWT（`jose`）+ bcrypt（Edge 対応）
+- 認証: Google OAuth（`/api/auth/google/*`）+ 自前 JWT セッション（`jose`）
 
 ## 画面
 
@@ -59,6 +59,7 @@ cp .env.example .env
 | ----------------------- | ---------------------------------------------------------------------------------------------- |
 | `DATABASE_URL`          | PostgreSQL 接続文字列（Neon / Supabase / Vercel Postgres など）                                |
 | `AUTH_SECRET`           | `openssl rand -base64 32` で作る 32 文字以上のランダム文字列                                    |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google Cloud Console → OAuth 2.0 Client ID。Authorized redirect URI は `{NEXT_PUBLIC_APP_URL}/api/auth/google/callback` |
 | `ANTHROPIC_API_KEY`     | Claude 用 API キー。未設定かつ `DEMO_MODE_FALLBACK=true` なら固定のサンプル解析で動きます      |
 | `NEXT_PUBLIC_APP_URL`   | 例: `http://localhost:3000`                                                                    |
 | `DEMO_MODE_FALLBACK`    | `true` にすると API キー未設定でもフローが止まらず、デモ解析が返る（初回セットアップ時に便利） |
@@ -70,11 +71,7 @@ npm run db:push       # schema を反映
 npm run db:seed       # デモユーザー + サンプル履歴を投入（任意）
 ```
 
-シードで作成されるデモアカウント:
-
-- メール: `demo@arrowphysics.app`
-- パスワード: `demo1234`
-- プラン: PRO
+シードはサンプル履歴を「データ置き場」として保持するダミーユーザー（`demo@arrowphysics.app`, PRO）を作成するだけで、実際のログインは **Google OAuth** のみです。自分の Google アカウントで登録/ログインしてください。
 
 ### 4. 起動
 
@@ -137,7 +134,7 @@ components/
   UploadForm.tsx, AppHeader.tsx, PlanButtons.tsx, Logo.tsx
 lib/
   ai/{prompt,analyze,demo}         # Claude 呼び出し + JSON サニタイズ
-  auth/{session,user}              # JWT セッション + bcrypt
+  auth/{session,user,google}       # JWT セッション + Google OAuth
   db.ts, limits.ts, misconceptions.ts, samples.ts, stripe.ts, cn.ts
 prisma/
   schema.prisma

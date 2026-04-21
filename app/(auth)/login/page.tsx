@@ -1,15 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -17,83 +12,33 @@ export default function LoginPage() {
     if (oauthErr) setErr(oauthErr);
   }, []);
 
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    setErr(null);
-    setBusy(true);
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "ログインに失敗しました");
-      router.push("/dashboard");
-      router.refresh();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "ログインに失敗しました");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
     <div className="card p-7">
       <h1 className="text-xl font-bold text-ink">ログイン</h1>
       <p className="text-sm text-ink-muted mt-1">
-        Google もしくはメールアドレスでログイン
+        Google アカウントでログインしてください。
       </p>
       <a
         href="/api/auth/google/start"
-        className="mt-6 flex items-center justify-center gap-2 w-full rounded-xl border border-ink/10 bg-white px-4 py-2.5 text-sm font-medium text-ink hover:bg-ink/5 transition"
+        className="mt-6 flex items-center justify-center gap-2 w-full rounded-xl border border-ink/10 bg-white px-4 py-3 text-sm font-semibold text-ink hover:bg-ink/5 transition"
       >
         <GoogleGlyph />
         Googleでログイン
       </a>
-      <div className="my-5 flex items-center gap-3 text-xs text-ink-muted">
-        <div className="flex-1 h-px bg-ink/10" />
-        または
-        <div className="flex-1 h-px bg-ink/10" />
-      </div>
-      <form className="space-y-4" onSubmit={onSubmit}>
-        <div>
-          <label className="label">メールアドレス</label>
-          <input
-            className="input"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+      {err && (
+        <div className="mt-4 rounded-xl bg-rose-50 text-rose-700 text-sm px-3 py-2 border border-rose-200">
+          {err}
         </div>
-        <div>
-          <label className="label">パスワード</label>
-          <input
-            className="input"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
-        {err && (
-          <div className="rounded-xl bg-rose-50 text-rose-700 text-sm px-3 py-2 border border-rose-200">
-            {err}
-          </div>
-        )}
-        <button className="btn-primary w-full" disabled={busy}>
-          {busy ? "ログイン中…" : "ログイン"}
-        </button>
-      </form>
-      <div className="mt-5 text-sm text-ink-muted">
-        アカウントをお持ちでない方は{" "}
+      )}
+      <p className="mt-5 text-xs text-ink-muted leading-relaxed">
+        初めての方も、同じボタンから登録されます。
+        <br />
+        はじめて利用する方は{" "}
         <Link className="text-brand font-medium" href="/register">
-          新規登録
+          新規登録の案内
         </Link>
-      </div>
+        へ。
+      </p>
     </div>
   );
 }

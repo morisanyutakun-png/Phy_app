@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { buildAuthorizeUrl } from "@/lib/auth/google";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 const STATE_COOKIE = "google_oauth_state";
 
 export async function GET(_req: NextRequest) {

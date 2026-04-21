@@ -3,6 +3,9 @@ import { prisma } from "@/lib/db";
 import { createSession, setSessionCookie } from "@/lib/auth/session";
 import { exchangeCodeForToken, fetchGoogleUserInfo } from "@/lib/auth/google";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 const STATE_COOKIE = "google_oauth_state";
 
 function errorRedirect(req: NextRequest, message: string) {

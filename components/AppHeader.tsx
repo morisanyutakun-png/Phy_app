@@ -16,8 +16,9 @@ export function AppHeader({ email, plan, used, limit }: AppHeaderProps) {
         <div className="flex items-center gap-5">
           <Logo size="sm" />
           <nav className="hidden md:flex items-center gap-1">
-            <NavLink href="/dashboard">ダッシュボード</NavLink>
-            <NavLink href="/upload">解析する</NavLink>
+            <NavLink href="/dashboard">ホーム</NavLink>
+            <NavLink href="/library">ライブラリ</NavLink>
+            <NavLink href="/upload">自分の問題を解析</NavLink>
             <NavLink href="/history">履歴</NavLink>
             <NavLink href="/pricing">料金</NavLink>
           </nav>

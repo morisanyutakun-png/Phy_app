@@ -34,7 +34,12 @@ enum ArrowJudgment {
 model User {
   id                   String   @id @default(cuid())
   email                String   @unique
-  passwordHash         String
+  // Optional so Google-only users don't need a password. Email/password
+  // accounts still populate this.
+  passwordHash         String?
+  googleId             String?  @unique
+  name                 String?
+  image                String?
   plan                 Plan     @default(FREE)
   stripeCustomerId     String?  @unique
   stripeSubscriptionId String?  @unique

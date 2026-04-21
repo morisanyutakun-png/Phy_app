@@ -44,6 +44,33 @@ function figure(body: string): string {
   </svg>`;
 }
 
+// Draws a helical spring as a 2D projection of a 3D helix with a slight
+// perspective skew along the axis. The x-offset (sin(t)*skew) makes the
+// "back" of each coil visually cross behind the next coil's "front", giving
+// a proper twisting appearance instead of a flat zigzag/dango.
+function helicalSpringPath(
+  x0: number,
+  x1: number,
+  cy: number,
+  coils: number,
+  radius: number,
+  samples: number = 240
+): string {
+  const length = x1 - x0;
+  const pitch = length / coils;
+  const skew = pitch * 0.48;
+  const pts: string[] = [];
+  for (let i = 0; i <= samples; i++) {
+    const u = i / samples;
+    const t = u * coils * 2 * Math.PI - Math.PI / 2;
+    const alongX = x0 + u * length;
+    const x = alongX + (Math.sin(t) + 1) * skew;
+    const y = cy - Math.cos(t) * radius;
+    pts.push(`${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`);
+  }
+  return pts.join(" ");
+}
+
 // 1: INCLINE ----------------------------------------------------------------
 const INCLINE_SVG = figure(`
   <!-- ground -->
@@ -53,8 +80,8 @@ const INCLINE_SVG = figure(`
   <!-- angle arc + theta -->
   <path d="M 200,520 A 120,120 0 0 0 140,460" fill="none" stroke="#5865A0" stroke-width="2"/>
   <text x="170" y="505" font-family="sans-serif" font-size="26" fill="#4B5575" font-style="italic">θ</text>
-  <!-- block -->
-  <g transform="translate(430,355) rotate(-25.6)">
+  <!-- block sitting on slope (bottom face flush with hypotenuse) -->
+  <g transform="translate(424,313) rotate(-25.84)">
     <rect x="-50" y="-36" width="100" height="72" rx="6" fill="url(#blockGrad)"/>
     <text x="0" y="8" fill="#fff" font-family="sans-serif" font-size="26" font-weight="700" text-anchor="middle">m</text>
   </g>
@@ -67,10 +94,10 @@ const HORIZONTAL_SVG = figure(`
   <!-- ground -->
   <rect x="40" y="430" width="720" height="14" fill="url(#floorGrad)"/>
   <rect x="40" y="444" width="720" height="60" fill="url(#hatch)" opacity="0.5"/>
-  <!-- block -->
-  <g transform="translate(400,380)">
-    <rect x="-70" y="-50" width="140" height="90" rx="6" fill="url(#blockGrad)"/>
-    <text x="0" y="3" fill="#fff" font-family="sans-serif" font-size="28" font-weight="700" text-anchor="middle">m</text>
+  <!-- block (bottom on floor: center at y=385, half-height 45) -->
+  <g transform="translate(400,385)">
+    <rect x="-70" y="-45" width="140" height="90" rx="6" fill="url(#blockGrad)"/>
+    <text x="0" y="8" fill="#fff" font-family="sans-serif" font-size="28" font-weight="700" text-anchor="middle">m</text>
   </g>
   <!-- external force F (drawn inside figure so it reads as part of the scene) -->
   <defs>
@@ -78,8 +105,8 @@ const HORIZONTAL_SVG = figure(`
       <path d="M0,1 L10,5 L0,9 z" fill="#22B07D"/>
     </marker>
   </defs>
-  <line x1="470" y1="380" x2="640" y2="380" stroke="#22B07D" stroke-width="4" marker-end="url(#mHx)" stroke-linecap="round"/>
-  <text x="560" y="365" font-family="sans-serif" font-size="20" fill="#22B07D" font-weight="700">F</text>
+  <line x1="470" y1="385" x2="640" y2="385" stroke="#22B07D" stroke-width="4" marker-end="url(#mHx)" stroke-linecap="round"/>
+  <text x="560" y="370" font-family="sans-serif" font-size="20" fill="#22B07D" font-weight="700">F</text>
   <text x="60" y="490" font-family="sans-serif" font-size="20" fill="#4B5575">粗い水平面</text>
 `);
 
@@ -91,21 +118,22 @@ const SPRING_SVG = figure(`
   <!-- wall -->
   <rect x="40" y="220" width="28" height="210" fill="url(#floorGrad)"/>
   <rect x="40" y="220" width="28" height="210" fill="url(#hatch)" opacity="0.4"/>
-  <!-- spring (coils) -->
-  <path d="M 68 360
-           L 100 360 L 115 340 L 135 380 L 155 340 L 175 380 L 195 340 L 215 380 L 235 340 L 255 380 L 275 340 L 295 380 L 315 360 L 350 360"
-        stroke="#0B1020" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
-  <!-- block -->
-  <g transform="translate(430,360)">
+  <!-- spring: proper 3D helix projection (twisting coils, not zigzag) -->
+  <path d="${helicalSpringPath(68, 330, 375, 9, 24)}"
+        stroke="#0B1020" stroke-width="2.5" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- block (bottom on floor) -->
+  <g transform="translate(410,375)">
     <rect x="-80" y="-55" width="160" height="110" rx="6" fill="url(#blockGrad)"/>
     <text x="0" y="8" fill="#fff" font-family="sans-serif" font-size="30" font-weight="700" text-anchor="middle">m</text>
   </g>
-  <!-- natural-length reference -->
-  <line x1="360" y1="200" x2="360" y2="430" stroke="#94A3B8" stroke-width="1" stroke-dasharray="4 4"/>
-  <text x="365" y="215" font-family="sans-serif" font-size="14" fill="#94A3B8">自然長</text>
-  <!-- x marker -->
-  <line x1="360" y1="480" x2="430" y2="480" stroke="#4B5575" stroke-width="1.5"/>
-  <text x="395" y="498" font-family="sans-serif" font-size="18" fill="#4B5575" text-anchor="middle" font-style="italic">x</text>
+  <!-- natural-length reference (at rest, block's left edge would sit here) -->
+  <line x1="260" y1="230" x2="260" y2="430" stroke="#94A3B8" stroke-width="1" stroke-dasharray="4 4"/>
+  <text x="212" y="222" font-family="sans-serif" font-size="14" fill="#94A3B8">自然長</text>
+  <!-- x marker (displacement from natural length) -->
+  <line x1="260" y1="470" x2="330" y2="470" stroke="#4B5575" stroke-width="1.5"/>
+  <line x1="260" y1="464" x2="260" y2="476" stroke="#4B5575" stroke-width="1.5"/>
+  <line x1="330" y1="464" x2="330" y2="476" stroke="#4B5575" stroke-width="1.5"/>
+  <text x="295" y="488" font-family="sans-serif" font-size="18" fill="#4B5575" text-anchor="middle" font-style="italic">x</text>
   <text x="60" y="555" font-family="sans-serif" font-size="20" fill="#4B5575">なめらかな水平面 + ばね</text>
 `);
 
@@ -163,15 +191,15 @@ export const SAMPLE_PROBLEMS: SampleProblem[] = [
       title: "粗い斜面上を滑り下りる物体",
       summary:
         "傾斜角 θ の粗い斜面上を物体が滑り下りる場面。摩擦力は『運動方向と逆』ではなく『相対運動と逆向き』、つまり斜面を上る向きに働く。",
-      objects: [{ id: "A", label: "物体", anchor: { x: 0.54, y: 0.59 } }],
+      objects: [{ id: "A", label: "物体", anchor: { x: 0.53, y: 0.522 } }],
       arrows: [
         {
           id: "g",
           objectId: "A",
           type: "force",
           label: "重力 mg",
-          from: { x: 0.54, y: 0.59 },
-          to: { x: 0.54, y: 0.86 },
+          from: { x: 0.53, y: 0.522 },
+          to: { x: 0.53, y: 0.792 },
           reason: "重力は常に鉛直下向き。斜面でも向きは変わらない。",
           confidence: 0.98,
           commonMistakes: ["GRAVITY_MAGNITUDE", "NORMAL_NOT_VERTICAL_ON_INCLINE"],
@@ -184,8 +212,8 @@ export const SAMPLE_PROBLEMS: SampleProblem[] = [
           objectId: "A",
           type: "force",
           label: "mg sinθ",
-          from: { x: 0.54, y: 0.59 },
-          to: { x: 0.462, y: 0.639 },
+          from: { x: 0.53, y: 0.522 },
+          to: { x: 0.452, y: 0.571 },
           reason:
             "重力の斜面に沿った成分。これが物体を斜面下向きに加速させる正味の駆動力の源。",
           confidence: 0.95,
@@ -198,8 +226,8 @@ export const SAMPLE_PROBLEMS: SampleProblem[] = [
           objectId: "A",
           type: "force",
           label: "mg cosθ",
-          from: { x: 0.54, y: 0.59 },
-          to: { x: 0.618, y: 0.811 },
+          from: { x: 0.53, y: 0.522 },
+          to: { x: 0.608, y: 0.743 },
           reason:
             "重力の斜面に垂直な成分。垂直抗力 N と釣り合う（鉛直方向のつり合いではなく、斜面垂直方向のつり合い）。",
           confidence: 0.95,
@@ -211,8 +239,8 @@ export const SAMPLE_PROBLEMS: SampleProblem[] = [
           objectId: "A",
           type: "force",
           label: "垂直抗力 N",
-          from: { x: 0.54, y: 0.59 },
-          to: { x: 0.41, y: 0.33 },
+          from: { x: 0.53, y: 0.522 },
+          to: { x: 0.40, y: 0.262 },
           reason: "斜面から受ける力は、斜面に対して垂直。",
           confidence: 0.95,
         },
@@ -221,14 +249,14 @@ export const SAMPLE_PROBLEMS: SampleProblem[] = [
           objectId: "A",
           type: "force",
           label: "動摩擦力 f",
-          from: { x: 0.54, y: 0.59 },
-          to: { x: 0.36, y: 0.5 },
+          from: { x: 0.53, y: 0.522 },
+          to: { x: 0.35, y: 0.432 },
           reason: "物体は斜面を下向きに動くので、動摩擦力は斜面を上向き。",
           confidence: 0.9,
           commonMistakes: ["FRICTION_DIRECTION"],
           alternate: {
-            from: { x: 0.54, y: 0.59 },
-            to: { x: 0.72, y: 0.68 },
+            from: { x: 0.53, y: 0.522 },
+            to: { x: 0.71, y: 0.612 },
             reason:
               "『運動方向に力を足す』と誤解したときの描き方。動摩擦は常に相対運動と逆向き。",
           },
@@ -238,8 +266,8 @@ export const SAMPLE_PROBLEMS: SampleProblem[] = [
           objectId: "A",
           type: "velocity",
           label: "速度 v",
-          from: { x: 0.56, y: 0.62 },
-          to: { x: 0.78, y: 0.74 },
+          from: { x: 0.55, y: 0.552 },
+          to: { x: 0.77, y: 0.672 },
           reason: "物体は斜面に沿って下る向きに運動している。",
           confidence: 0.88,
         },
@@ -248,8 +276,8 @@ export const SAMPLE_PROBLEMS: SampleProblem[] = [
           objectId: "A",
           type: "acceleration",
           label: "加速度 a",
-          from: { x: 0.52, y: 0.56 },
-          to: { x: 0.66, y: 0.64 },
+          from: { x: 0.51, y: 0.492 },
+          to: { x: 0.65, y: 0.572 },
           reason:
             "mg sinθ が摩擦 μmg cosθ より大きいと、加速度は斜面を下る向き。",
           confidence: 0.8,
@@ -375,15 +403,15 @@ export const SAMPLE_PROBLEMS: SampleProblem[] = [
       title: "水平面でばねにつながれた物体（右に x 変位）",
       summary:
         "自然長から右に x だけ変位したばねにつながれた物体。弾性力は変位と逆向き（左）に働く。",
-      objects: [{ id: "A", label: "物体", anchor: { x: 0.54, y: 0.6 } }],
+      objects: [{ id: "A", label: "物体", anchor: { x: 0.513, y: 0.625 } }],
       arrows: [
         {
           id: "g",
           objectId: "A",
           type: "force",
           label: "重力 mg",
-          from: { x: 0.54, y: 0.6 },
-          to: { x: 0.54, y: 0.85 },
+          from: { x: 0.513, y: 0.625 },
+          to: { x: 0.513, y: 0.87 },
           reason: "重力は鉛直下向き。",
           confidence: 0.95,
         },
@@ -392,8 +420,8 @@ export const SAMPLE_PROBLEMS: SampleProblem[] = [
           objectId: "A",
           type: "force",
           label: "垂直抗力 N",
-          from: { x: 0.54, y: 0.6 },
-          to: { x: 0.54, y: 0.36 },
+          from: { x: 0.513, y: 0.625 },
+          to: { x: 0.513, y: 0.38 },
           reason: "水平面から受ける力。mg と釣り合う。",
           confidence: 0.9,
         },
@@ -402,8 +430,8 @@ export const SAMPLE_PROBLEMS: SampleProblem[] = [
           objectId: "A",
           type: "force",
           label: "弾性力 −kx",
-          from: { x: 0.52, y: 0.58 },
-          to: { x: 0.3, y: 0.58 },
+          from: { x: 0.493, y: 0.605 },
+          to: { x: 0.28, y: 0.605 },
           reason: "ばねが伸びているので、弾性力は自然長に戻す向き（左）。",
           confidence: 0.95,
           commonMistakes: ["SPRING_DIRECTION"],
@@ -413,8 +441,8 @@ export const SAMPLE_PROBLEMS: SampleProblem[] = [
           objectId: "A",
           type: "acceleration",
           label: "加速度 a",
-          from: { x: 0.54, y: 0.64 },
-          to: { x: 0.38, y: 0.64 },
+          from: { x: 0.513, y: 0.665 },
+          to: { x: 0.35, y: 0.665 },
           reason: "弾性力が合力なので、加速度も左向き。",
           confidence: 0.88,
           commonMistakes: ["VELOCITY_VS_ACCELERATION"],

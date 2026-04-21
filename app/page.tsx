@@ -378,6 +378,31 @@ const MINI_RED = "#FF375F";
 const MINI_GREEN = "#30D158";
 const MINI_BLUE = "#3B5BFF";
 
+// 3D helix projected to 2D: sin(t) skew shifts front vs back so consecutive
+// coils cross visually — the correct "twisting spring" look instead of a flat
+// zigzag or string-of-beads.
+function miniSpringPath(
+  x0: number,
+  x1: number,
+  cy: number,
+  coils: number,
+  r: number,
+  samples: number = 160,
+): string {
+  const length = x1 - x0;
+  const pitch = length / coils;
+  const skew = pitch * 0.48;
+  const pts: string[] = [];
+  for (let i = 0; i <= samples; i++) {
+    const u = i / samples;
+    const t = u * coils * 2 * Math.PI - Math.PI / 2;
+    const x = x0 + u * length + (Math.sin(t) + 1) * skew;
+    const y = cy - Math.cos(t) * r;
+    pts.push(`${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`);
+  }
+  return pts.join(" ");
+}
+
 function MiniSvg({ children }: { children: React.ReactNode }) {
   return (
     <svg viewBox="0 0 160 120" className="w-full h-full">
@@ -454,12 +479,14 @@ function MiniSpring() {
     <MiniSvg>
       <line x1="0" y1="100" x2="160" y2="100" stroke="#5865A0" strokeWidth="1.5" />
       <rect x="10" y="46" width="8" height="54" fill="#5865A0" />
-      <line x1="18" y1="86" x2="24" y2="86" stroke="#0B1020" strokeWidth="1.6" strokeLinecap="round" />
-      <g fill="none" stroke="#0B1020" strokeWidth="1.6" strokeLinecap="round">
-        {[27, 34, 41, 48, 55, 62, 69, 76, 83, 90].map((cx) => (
-          <ellipse key={cx} cx={cx} cy="86" rx="4" ry="9" transform={`rotate(-18 ${cx} 86)`} />
-        ))}
-      </g>
+      <path
+        d={miniSpringPath(18, 95, 86, 7, 9)}
+        stroke="#0B1020"
+        strokeWidth="1.4"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <rect x="95" y="72" width="36" height="28" rx="3" fill="#0B1020" />
       <line x1="95" y1="86" x2="71" y2="86" stroke={MINI_RED} strokeWidth="2" markerEnd="url(#miniHead)" strokeLinecap="round" />
     </MiniSvg>

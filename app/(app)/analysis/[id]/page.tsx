@@ -7,11 +7,12 @@ import { notFound } from "next/navigation";
 export default async function AnalysisDetail({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const user = await requireUser();
   const analysis = await prisma.analysis.findFirst({
-    where: { id: params.id, userId: user.id },
+    where: { id, userId: user.id },
     include: { upload: true },
   });
   if (!analysis) notFound();

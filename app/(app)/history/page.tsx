@@ -28,11 +28,12 @@ const FREE_HISTORY_LIMIT = 10;
 export default async function HistoryPage({
   searchParams,
 }: {
-  searchParams: { unit?: string };
+  searchParams: Promise<{ unit?: string }>;
 }) {
+  const { unit: unitParam } = await searchParams;
   const user = await requireUser();
   const usage = await getUsageStatus(user.id);
-  const unit = (searchParams.unit ?? "ALL").toUpperCase();
+  const unit = (unitParam ?? "ALL").toUpperCase();
 
   const where: Record<string, unknown> = { userId: user.id };
   if (unit !== "ALL") where.unit = unit;

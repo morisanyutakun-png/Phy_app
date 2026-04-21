@@ -8,8 +8,13 @@ export function generateStaticParams() {
   return SAMPLE_PROBLEMS.map((s) => ({ sampleId: s.id }));
 }
 
-export default function DemoPage({ params }: { params: { sampleId: string } }) {
-  const sample = getSample(params.sampleId);
+export default async function DemoPage({
+  params,
+}: {
+  params: Promise<{ sampleId: string }>;
+}) {
+  const { sampleId } = await params;
+  const sample = getSample(sampleId);
   if (!sample) notFound();
 
   return (

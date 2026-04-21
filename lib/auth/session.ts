@@ -28,7 +28,8 @@ export async function createSession(payload: SessionPayload): Promise<string> {
 }
 
 export async function readSession(): Promise<SessionPayload | null> {
-  const token = cookies().get(COOKIE_NAME)?.value;
+  const jar = await cookies();
+  const token = jar.get(COOKIE_NAME)?.value;
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, getSecret());
@@ -42,7 +43,8 @@ export async function readSession(): Promise<SessionPayload | null> {
 }
 
 export async function setSessionCookie(token: string) {
-  cookies().set(COOKIE_NAME, token, {
+  const jar = await cookies();
+  jar.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -52,5 +54,6 @@ export async function setSessionCookie(token: string) {
 }
 
 export async function clearSessionCookie() {
-  cookies().set(COOKIE_NAME, "", { path: "/", maxAge: 0 });
+  const jar = await cookies();
+  jar.set(COOKIE_NAME, "", { path: "/", maxAge: 0 });
 }

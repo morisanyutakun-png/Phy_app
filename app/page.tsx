@@ -439,12 +439,12 @@ function MiniIncline() {
     <MiniSvg>
       <polygon points="20,95 140,95 140,40" fill="#E4E8F3" stroke="#5865A0" strokeWidth="1.4" strokeLinejoin="round" />
       <line x1="20" y1="95" x2="140" y2="40" stroke="rgba(255,255,255,0.9)" strokeWidth="1" />
-      <g transform="translate(95,62) rotate(-24.6)">
+      <g transform="translate(90.8,51.5) rotate(-24.6)">
         <rect x="-15" y="-10" width="30" height="20" rx="3" fill="#0B1020" />
       </g>
-      <line x1="95" y1="62" x2="95" y2="88" stroke={MINI_RED} strokeWidth="2" markerEnd="url(#miniHead)" strokeLinecap="round" />
-      <line x1="95" y1="62" x2="84" y2="37" stroke={MINI_RED} strokeWidth="2" markerEnd="url(#miniHead)" strokeLinecap="round" />
-      <line x1="95" y1="62" x2="115" y2="53" stroke={MINI_RED} strokeWidth="2" markerEnd="url(#miniHead)" strokeLinecap="round" />
+      <line x1="90.8" y1="51.5" x2="90.8" y2="78" stroke={MINI_RED} strokeWidth="2" markerEnd="url(#miniHead)" strokeLinecap="round" />
+      <line x1="90.8" y1="51.5" x2="79.8" y2="26.5" stroke={MINI_RED} strokeWidth="2" markerEnd="url(#miniHead)" strokeLinecap="round" />
+      <line x1="90.8" y1="51.5" x2="110.8" y2="42.5" stroke={MINI_RED} strokeWidth="2" markerEnd="url(#miniHead)" strokeLinecap="round" />
     </MiniSvg>
   );
 }
@@ -452,18 +452,16 @@ function MiniIncline() {
 function MiniSpring() {
   return (
     <MiniSvg>
-      <rect x="10" y="40" width="8" height="60" fill="#5865A0" />
       <line x1="0" y1="100" x2="160" y2="100" stroke="#5865A0" strokeWidth="1.5" />
-      <path
-        d="M18 70 L28 70 L33 58 L43 82 L53 58 L63 82 L73 58 L83 82 L90 70"
-        stroke="#0B1020"
-        strokeWidth="1.6"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <rect x="90" y="55" width="40" height="30" rx="3" fill="#0B1020" />
-      <line x1="90" y1="70" x2="64" y2="70" stroke={MINI_RED} strokeWidth="2" markerEnd="url(#miniHead)" strokeLinecap="round" />
+      <rect x="10" y="46" width="8" height="54" fill="#5865A0" />
+      <line x1="18" y1="86" x2="24" y2="86" stroke="#0B1020" strokeWidth="1.6" strokeLinecap="round" />
+      <g fill="none" stroke="#0B1020" strokeWidth="1.6" strokeLinecap="round">
+        {[27, 34, 41, 48, 55, 62, 69, 76, 83, 90].map((cx) => (
+          <ellipse key={cx} cx={cx} cy="86" rx="4" ry="9" transform={`rotate(-18 ${cx} 86)`} />
+        ))}
+      </g>
+      <rect x="95" y="72" width="36" height="28" rx="3" fill="#0B1020" />
+      <line x1="95" y1="86" x2="71" y2="86" stroke={MINI_RED} strokeWidth="2" markerEnd="url(#miniHead)" strokeLinecap="round" />
     </MiniSvg>
   );
 }

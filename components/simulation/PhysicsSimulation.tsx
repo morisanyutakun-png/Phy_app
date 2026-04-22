@@ -16,9 +16,14 @@ const AMBER = "#FF9F0A";
 const G = 9.81; // m/s²
 
 // Scene-unit scale. Chosen so typical classroom numbers (θ≈25°, μ≈0.2, F≈20 N)
-// animate at a visible-but-not-dizzy pace.
-const PX_PER_M = 100;
-const TIME_SCALE = 0.9;
+// animate slowly enough for students to read labels without feeling dizzy.
+// Per-scene overrides appear inside each scene component.
+const TIME_SCALE = 0.65;
+// How many viewBox pixels represent one metre of real-world travel. Set
+// independently per scene so that, at default parameters, each loop takes
+// roughly 2-3 seconds — fast enough to feel alive, slow enough to follow.
+const PX_PER_M_HORIZONTAL = 18;
+const PX_PER_M_INCLINE = 62;
 
 // ============================================================================
 // Top-level
@@ -294,76 +299,99 @@ function HorizontalScene({
   const isStatic = F <= staticLimit;
   const a = isStatic ? 0 : (F - staticLimit) / m;
 
-  // Tight motion range so even at max arrow length the F and f labels stay
-  // inside the viewBox.
+  // Geometry: block sits ON the ground (its bottom face coincides with the
+  // ground line), not floating above it.
+  const GROUND_Y = 240;
+  const BLOCK_W = 60;
+  const BLOCK_H = 44;
+  const BLOCK_HALF_H = BLOCK_H / 2;
+  const BLOCK_HALF_W = BLOCK_W / 2;
+  const cy = GROUND_Y - BLOCK_HALF_H; // 218 — block bottom exactly at ground
+
+  // Motion range picked so that at the widest arrow configuration (max F
+  // to the right and max friction label to the left) nothing leaves frame.
   const SCENE_LEFT = 160;
   const SCENE_RIGHT = 340;
   const SCENE_LEN = SCENE_RIGHT - SCENE_LEFT;
-  const loopTime = isStatic ? 3 : Math.sqrt((2 * SCENE_LEN) / (a * PX_PER_M));
-  const tt = isStatic ? 0 : t % (loopTime + 0.4);
+  const loopTime = isStatic
+    ? 3
+    : Math.sqrt((2 * SCENE_LEN) / (a * PX_PER_M_HORIZONTAL));
+  const tt = isStatic ? 0 : t % (loopTime + 0.5);
   const slidePhase = Math.min(tt, loopTime);
-  const sPx = isStatic ? 0 : 0.5 * (a * PX_PER_M) * slidePhase * slidePhase;
+  const sPx = isStatic
+    ? 0
+    : 0.5 * (a * PX_PER_M_HORIZONTAL) * slidePhase * slidePhase;
   const v = isStatic ? 0 : a * slidePhase;
 
   const cx = SCENE_LEFT + Math.min(sPx, SCENE_LEN);
-  const cy = 175;
-  const GROUND_Y = 230;
+  const contactX = cx;
+  const contactY = GROUND_Y;
 
   useSendTelemetry(onTelemetry, { t, speed: v, accel: a });
 
-  // Arrow scales (px) — conservative max so labels have room.
-  const fPx = Math.min(78, F * 3.6);
-  const frictPx = Math.min(62, staticLimit * 3.6);
+  // Arrow lengths
+  const fPx = Math.min(78, F * 3.4);
+  const frictPx = Math.min(64, staticLimit * 3.4);
   const vPx = Math.min(80, v * 9);
   const aPx = Math.min(42, a * 4);
+
+  // Slight x-offset so mg and N, which are both vertical on the same cx,
+  // don't overlap each other visually inside the block.
+  const MG_X = cx + 6;
+  const N_X = cx - 6;
 
   return (
     <>
       <rect x="0" y={GROUND_Y} width={VB_W} height={VB_H - GROUND_Y} fill="url(#simHatch)" />
-      <line x1="0" y1={GROUND_Y} x2={VB_W} y2={GROUND_Y} stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+      <line x1="0" y1={GROUND_Y} x2={VB_W} y2={GROUND_Y} stroke="rgba(255,255,255,0.38)" strokeWidth="1.2" />
 
-      <Block cx={cx} cy={cy} angleDeg={0} w={60} h={44} />
+      <Block cx={cx} cy={cy} angleDeg={0} w={BLOCK_W} h={BLOCK_H} />
 
       {arrows.force && (
         <>
-          {/* mg (down) */}
-          <SvgArrow x1={cx} y1={cy} x2={cx} y2={cy + 46} color={RED} />
-          <SvgLabel x={cx} y={cy + 58} color={RED} text="重力 mg" />
+          {/* mg — from center of mass straight down */}
+          <SvgArrow x1={MG_X} y1={cy} x2={MG_X} y2={cy + 46} color={RED} />
+          <SvgLabel x={MG_X + 18} y={cy + 54} color={RED} text="重力 mg" />
+          {/* tiny dot at the point of application (centre of mass) */}
+          <circle cx={MG_X} cy={cy} r={1.8} fill={RED} />
 
-          {/* N (up) */}
-          <SvgArrow x1={cx} y1={cy} x2={cx} y2={cy - 46} color={RED} />
-          <SvgLabel x={cx} y={cy - 58} color={RED} text="垂直抗力 N" />
+          {/* N — from the ground-contact point straight up (作用点 = 床との境界) */}
+          <SvgArrow x1={N_X} y1={contactY} x2={N_X} y2={contactY - 54} color={RED} />
+          <SvgLabel x={N_X - 22} y={contactY - 62} color={RED} text="垂直抗力 N" />
+          <circle cx={N_X} cy={contactY} r={1.8} fill={RED} />
 
-          {/* F (right) */}
+          {/* F — applied force at the centre of mass, pointing right */}
           {F > 0 && (
             <>
-              <SvgArrow x1={cx + 30} y1={cy} x2={cx + 30 + fPx} y2={cy} color={RED} />
-              <SvgLabel x={cx + 30 + fPx + 28} y={cy} color={RED} text="外力 F" />
+              <SvgArrow x1={cx} y1={cy} x2={cx + BLOCK_HALF_W + fPx} y2={cy} color={RED} />
+              <SvgLabel x={cx + BLOCK_HALF_W + fPx + 26} y={cy} color={RED} text="外力 F" />
             </>
           )}
 
-          {/* friction (left, only when sliding) */}
+          {/* Friction — from the ground contact, along the floor (作用点 = 床と物体の境界) */}
           {frictPx > 0 && !isStatic && (
             <>
-              <SvgArrow x1={cx - 30} y1={cy} x2={cx - 30 - frictPx} y2={cy} color={RED} />
-              <SvgLabel x={cx - 30 - frictPx - 28} y={cy} color={RED} text="摩擦 f" />
+              <SvgArrow x1={contactX} y1={contactY} x2={contactX - frictPx} y2={contactY} color={RED} />
+              <SvgLabel x={contactX - frictPx - 28} y={contactY + 2} color={RED} text="摩擦 f" />
+              <circle cx={contactX} cy={contactY} r={1.8} fill={RED} />
             </>
           )}
         </>
       )}
 
-      {/* Kinematic arrows below the block, stacked vertically so v and a
-          never overlap. */}
+      {/* Kinematic arrows — drawn outside the block so they don't
+          overlap the force arrows. v is placed above the block (between
+          N's label and the block top), a just below v. */}
       {arrows.velocity && vPx > 4 && (
         <>
-          <SvgArrow x1={cx + 30} y1={cy + 66} x2={cx + 30 + vPx} y2={cy + 66} color={GREEN} width={2.0} />
-          <SvgLabel x={cx + 30 + vPx + 28} y={cy + 66} color={GREEN} text="速度 v" />
+          <SvgArrow x1={cx + 30} y1={cy - 28} x2={cx + 30 + vPx} y2={cy - 28} color={GREEN} width={2.0} />
+          <SvgLabel x={cx + 30 + vPx + 28} y={cy - 28} color={GREEN} text="速度 v" />
         </>
       )}
       {arrows.acceleration && aPx > 2 && (
         <>
-          <SvgArrow x1={cx + 30} y1={cy + 88} x2={cx + 30 + aPx} y2={cy + 88} color={AMBER} width={1.8} />
-          <SvgLabel x={cx + 30 + aPx + 28} y={cy + 88} color={AMBER} text="加速度 a" />
+          <SvgArrow x1={cx + 30} y1={cy - 8} x2={cx + 30 + aPx} y2={cy - 8} color={AMBER} width={1.8} />
+          <SvgLabel x={cx + 30 + aPx + 30} y={cy - 8} color={AMBER} text="加速度 a" />
         </>
       )}
     </>
@@ -417,15 +445,22 @@ function InclineScene({
   const START_S = 0.8;
   const END_S = 0.22;
   const slideDistPx = (START_S - END_S) * slopeLen;
-  const loopTime = isStatic ? 3 : Math.sqrt((2 * slideDistPx) / (a * PX_PER_M));
-  const cycle = loopTime + 0.55;
+  const loopTime = isStatic
+    ? 3
+    : Math.sqrt((2 * slideDistPx) / (a * PX_PER_M_INCLINE));
+  const cycle = loopTime + 0.6;
 
   const tt = t % cycle;
   const slidePhase = Math.min(tt, loopTime);
-  const sPx = isStatic ? 0 : 0.5 * (a * PX_PER_M) * slidePhase * slidePhase;
+  const sPx = isStatic
+    ? 0
+    : 0.5 * (a * PX_PER_M_INCLINE) * slidePhase * slidePhase;
   const v = isStatic ? 0 : a * slidePhase;
 
   const s = START_S - Math.min(sPx, slideDistPx) / slopeLen;
+  // `sp` is the slope surface contact point — used as the point of
+  // application for N and f, which physically act at the floor-block
+  // boundary, not at the block's centre of mass.
   const sp = {
     x: SLOPE_L.x + (SLOPE_R.x - SLOPE_L.x) * s,
     y: SLOPE_L.y + (SLOPE_R.y - SLOPE_L.y) * s,
@@ -481,30 +516,40 @@ function InclineScene({
 
       {arrows.force && (
         <>
-          {/* mg vertical */}
+          {/* mg — from centre of mass, straight down (重心) */}
           <SvgArrow x1={block.cx} y1={block.cy} x2={mgTip.x} y2={mgTip.y} color={RED} />
           <SvgLabel x={mgTip.x + 26} y={mgTip.y + 2} color={RED} text="重力 mg" />
-          {/* N */}
-          <SvgArrow x1={block.cx} y1={block.cy} x2={block.cx + NRM.x * N_LEN} y2={block.cy + NRM.y * N_LEN} color={RED} />
+          <circle cx={block.cx} cy={block.cy} r={1.8} fill={RED} />
+
+          {/* N — from the slope contact point (作用点 = 斜面と物体の境界) */}
+          <SvgArrow
+            x1={sp.x}
+            y1={sp.y}
+            x2={sp.x + NRM.x * N_LEN}
+            y2={sp.y + NRM.y * N_LEN}
+            color={RED}
+          />
           <SvgLabel
-            x={block.cx + NRM.x * (N_LEN + 20)}
-            y={block.cy + NRM.y * (N_LEN + 20)}
+            x={sp.x + NRM.x * (N_LEN + 22)}
+            y={sp.y + NRM.y * (N_LEN + 22)}
             color={RED}
             text="垂直抗力 N"
           />
-          {/* friction up-slope */}
+          <circle cx={sp.x} cy={sp.y} r={1.8} fill={RED} />
+
+          {/* Friction — from the slope contact, along the surface up-slope */}
           {F_FRICT_LEN > 0 && !isStatic && (
             <>
               <SvgArrow
-                x1={block.cx}
-                y1={block.cy}
-                x2={block.cx + UP.x * F_FRICT_LEN}
-                y2={block.cy + UP.y * F_FRICT_LEN}
+                x1={sp.x}
+                y1={sp.y}
+                x2={sp.x + UP.x * F_FRICT_LEN}
+                y2={sp.y + UP.y * F_FRICT_LEN}
                 color={RED}
               />
               <SvgLabel
-                x={block.cx + UP.x * (F_FRICT_LEN + 20)}
-                y={block.cy + UP.y * (F_FRICT_LEN + 20) - 4}
+                x={sp.x + UP.x * (F_FRICT_LEN + 22) + NRM.x * 10}
+                y={sp.y + UP.y * (F_FRICT_LEN + 22) + NRM.y * 10}
                 color={RED}
                 text="摩擦 f"
               />
@@ -600,75 +645,102 @@ function SpringScene({
   const v = -A * omega * Math.sin(omega * t);
   const accel = -omega * omega * x;
 
+  const GROUND_Y = 250;
+  const BLOCK_W = 60;
+  const BLOCK_H = 48;
+  const BLOCK_HALF_W = BLOCK_W / 2;
+  const BLOCK_HALF_H = BLOCK_H / 2;
   const centerX = 300;
-  const cy = 180;
+  const cy = GROUND_Y - BLOCK_HALF_H; // 226 — block sits on ground
   const px = centerX + x * 180;
   const wallX = 50;
+  const contactX = px;
+  const contactY = GROUND_Y;
+  const MG_X = px + 6;
+  const N_X = px - 6;
+  const springAttachX = px - BLOCK_HALF_W; // spring attaches to left face
+
   useSendTelemetry(onTelemetry, { t, speed: Math.abs(v), accel: Math.abs(accel) });
 
   return (
     <>
-      <rect x="0" y="250" width={VB_W} height={VB_H - 250} fill="url(#simHatch)" />
-      <line x1="0" y1="250" x2={VB_W} y2="250" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+      <rect x="0" y={GROUND_Y} width={VB_W} height={VB_H - GROUND_Y} fill="url(#simHatch)" />
+      <line x1="0" y1={GROUND_Y} x2={VB_W} y2={GROUND_Y} stroke="rgba(255,255,255,0.38)" strokeWidth="1.2" />
 
-      {/* wall */}
-      <rect x={wallX - 18} y={cy - 60} width={14} height={120} fill="rgba(255,255,255,0.14)" />
-      <rect x={wallX - 18} y={cy - 60} width={14} height={120} fill="url(#simHatch)" opacity={0.6} />
+      {/* wall, anchored to ground */}
+      <rect x={wallX - 18} y={GROUND_Y - 130} width={14} height={130} fill="rgba(255,255,255,0.14)" />
+      <rect x={wallX - 18} y={GROUND_Y - 130} width={14} height={130} fill="url(#simHatch)" opacity={0.6} />
 
       {/* natural length reference */}
-      <line x1={centerX} y1={cy - 72} x2={centerX} y2={cy + 72} stroke="rgba(255,255,255,0.25)" strokeWidth="1" strokeDasharray="3 4" />
+      <line x1={centerX} y1={cy - 72} x2={centerX} y2={cy + BLOCK_HALF_H + 6} stroke="rgba(255,255,255,0.25)" strokeWidth="1" strokeDasharray="3 4" />
       <text x={centerX} y={cy - 78} textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="10">
         自然長
       </text>
 
-      {/* spring coils */}
-      <SpringPath x0={wallX - 4} x1={px - 30} cy={cy} />
+      {/* spring coils — run from wall to the block's left face */}
+      <SpringPath x0={wallX - 4} x1={springAttachX} cy={cy} />
 
-      <Block cx={px} cy={cy} angleDeg={0} w={60} h={48} />
+      <Block cx={px} cy={cy} angleDeg={0} w={BLOCK_W} h={BLOCK_H} />
 
       {arrows.force && (
         <>
-          {/* spring force = -k x (toward equilibrium) */}
-          {Math.abs(x) > 0.02 && (
-            <>
-              {(() => {
-                const forceLen = Math.min(90, Math.abs(k * x) * 5);
-                const sign = Math.sign(x);
-                const tipX = px - sign * forceLen;
-                return (
-                  <>
-                    <SvgArrow x1={px} y1={cy} x2={tipX} y2={cy} color={RED} />
-                    <SvgLabel x={tipX - sign * 36} y={cy} color={RED} text="弾性力 −kx" />
-                  </>
-                );
-              })()}
-            </>
-          )}
-          <SvgArrow x1={px} y1={cy} x2={px} y2={cy - 56} color={RED} />
-          <SvgLabel x={px} y={cy - 68} color={RED} text="垂直抗力 N" />
-          <SvgArrow x1={px} y1={cy} x2={px} y2={cy + 56} color={RED} />
-          <SvgLabel x={px} y={cy + 68} color={RED} text="重力 mg" />
+          {/* spring force = -k x (applied at the spring's attachment point,
+              which is the block's left face) */}
+          {Math.abs(x) > 0.02 && (() => {
+            const forceLen = Math.min(84, Math.abs(k * x) * 5);
+            const sign = Math.sign(x);
+            const tailX = springAttachX;
+            const tipX = tailX - sign * forceLen;
+            return (
+              <>
+                <SvgArrow x1={tailX} y1={cy} x2={tipX} y2={cy} color={RED} />
+                <SvgLabel x={tipX - sign * 36} y={cy} color={RED} text="弾性力 −kx" />
+                <circle cx={tailX} cy={cy} r={1.8} fill={RED} />
+              </>
+            );
+          })()}
+          {/* N — from ground contact, straight up */}
+          <SvgArrow x1={N_X} y1={contactY} x2={N_X} y2={contactY - 62} color={RED} />
+          <SvgLabel x={N_X - 18} y={contactY - 70} color={RED} text="垂直抗力 N" />
+          <circle cx={N_X} cy={contactY} r={1.8} fill={RED} />
+          {/* mg — from centre of mass, straight down */}
+          <SvgArrow x1={MG_X} y1={cy} x2={MG_X} y2={cy + 36} color={RED} />
+          <SvgLabel x={MG_X + 18} y={cy + 44} color={RED} text="重力 mg" />
+          <circle cx={MG_X} cy={cy} r={1.8} fill={RED} />
         </>
       )}
 
       {arrows.velocity && Math.abs(v) > 0.03 && (() => {
-        const vLen = Math.min(82, Math.abs(v) * 70);
+        const vLen = Math.min(74, Math.abs(v) * 65);
         const sign = Math.sign(v);
-        const tipX = px + sign * vLen;
         return (
           <>
-            <SvgArrow x1={px + sign * 30} y1={cy - 88} x2={px + sign * 30 + sign * vLen * 0.8} y2={cy - 88} color={GREEN} width={2} />
-            <SvgLabel x={px + sign * (30 + vLen * 0.8 + 22)} y={cy - 88} color={GREEN} text="速度 v" />
+            <SvgArrow
+              x1={px + sign * 30}
+              y1={cy - 82}
+              x2={px + sign * (30 + vLen * 0.85)}
+              y2={cy - 82}
+              color={GREEN}
+              width={2}
+            />
+            <SvgLabel x={px + sign * (30 + vLen * 0.85 + 22)} y={cy - 82} color={GREEN} text="速度 v" />
           </>
         );
       })()}
       {arrows.acceleration && Math.abs(accel) > 0.05 && (() => {
-        const aLen = Math.min(60, Math.abs(accel) * 6);
+        const aLen = Math.min(56, Math.abs(accel) * 5.5);
         const sign = Math.sign(accel);
         return (
           <>
-            <SvgArrow x1={px + sign * 30} y1={cy + 88} x2={px + sign * (30 + aLen)} y2={cy + 88} color={AMBER} width={1.8} />
-            <SvgLabel x={px + sign * (30 + aLen + 24)} y={cy + 88} color={AMBER} text="加速度 a" />
+            <SvgArrow
+              x1={px + sign * 30}
+              y1={cy - 60}
+              x2={px + sign * (30 + aLen)}
+              y2={cy - 60}
+              color={AMBER}
+              width={1.8}
+            />
+            <SvgLabel x={px + sign * (30 + aLen + 24)} y={cy - 60} color={AMBER} text="加速度 a" />
           </>
         );
       })()}
@@ -767,15 +839,31 @@ function CircularScene({
 
       {arrows.force && (
         <>
-          <SvgArrow x1={bx} y1={by} x2={bx + inward.x * T_LEN} y2={by + inward.y * T_LEN} color={RED} />
-          {/* Tension label: place OUTWARD from block so it doesn't collide with
-              the acceleration arrow (also inward). */}
-          <SvgLabel
-            x={bx + outward.x * 28}
-            y={by + outward.y * 28}
-            color={RED}
-            text="張力 T"
-          />
+          {/* Tension — applied at the string's attachment on the ball's
+              inward-facing surface (作用点 = ひもが結ばれている点). */}
+          {(() => {
+            const ballR = 20;
+            const attachX = bx + inward.x * ballR;
+            const attachY = by + inward.y * ballR;
+            return (
+              <>
+                <SvgArrow
+                  x1={attachX}
+                  y1={attachY}
+                  x2={attachX + inward.x * T_LEN}
+                  y2={attachY + inward.y * T_LEN}
+                  color={RED}
+                />
+                <circle cx={attachX} cy={attachY} r={1.8} fill={RED} />
+                <SvgLabel
+                  x={bx + outward.x * 32}
+                  y={by + outward.y * 32}
+                  color={RED}
+                  text="張力 T"
+                />
+              </>
+            );
+          })()}
         </>
       )}
 
@@ -916,8 +1004,10 @@ function ProjectileScene({
 
       {arrows.force && (
         <>
-          <SvgArrow x1={px} y1={py} x2={px} y2={py + 42} color={RED} />
-          <SvgLabel x={px + 26} y={py + 50} color={RED} text="重力 mg" />
+          {/* mg — from the centre of mass of the ball (作用点 = 重心) */}
+          <SvgArrow x1={px + 6} y1={py} x2={px + 6} y2={py + 44} color={RED} />
+          <SvgLabel x={px + 28} y={py + 52} color={RED} text="重力 mg" />
+          <circle cx={px + 6} cy={py} r={1.8} fill={RED} />
         </>
       )}
 
@@ -990,8 +1080,10 @@ function ProjectileScene({
 
       {arrows.acceleration && (
         <>
-          <SvgArrow x1={px - 24} y1={py} x2={px - 24} y2={py + 38} color={AMBER} width={1.7} />
-          <SvgLabel x={px - 46} y={py + 22} color={AMBER} text="加速度 g" />
+          {/* g — acceleration, also at centre of mass; offset left from mg so
+              the two red/amber arrows don't perfectly overlap. */}
+          <SvgArrow x1={px - 6} y1={py} x2={px - 6} y2={py + 36} color={AMBER} width={1.7} />
+          <SvgLabel x={px - 32} y={py + 24} color={AMBER} text="加速度 g" />
         </>
       )}
     </>

@@ -338,9 +338,11 @@ export const PROBLEMS: Problem[] = [
     ],
     simulation: {
       type: "circular",
-      params: { radius: 0.3, omega: 1.6, mass: 1 },
+      // Default ω chosen so one revolution takes roughly 6 s on-screen — slow
+      // enough that students can track the velocity / acceleration arrows.
+      params: { radius: 0.3, omega: 1.2, mass: 1 },
       controllable: [
-        { key: "omega", label: "角速度 ω", min: 0.4, max: 3.5, step: 0.1, unit: "rad/s" },
+        { key: "omega", label: "角速度 ω", min: 0.4, max: 2.4, step: 0.1, unit: "rad/s" },
       ],
       arrows: { force: true, velocity: true, acceleration: true },
     },
